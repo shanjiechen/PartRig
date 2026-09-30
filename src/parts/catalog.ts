@@ -6,6 +6,7 @@ import { BROWS, EYES, NOSES, MOUTHS, type BrowDef, type EyeDef, type NoseDef, ty
 import { HAIRS, type HairDef } from './hair';
 import { HATS, type HatDef } from './headwear';
 import { WEAPONS, type WeaponDef } from '../render/props';
+import { guofengCatalog } from './guofeng';
 
 export interface PartCatalog {
   face: FaceDef[]; ears: EarDef[]; brows: BrowDef[]; eyes: EyeDef[];
@@ -16,6 +17,7 @@ export interface PartCatalog {
 
 export const STYLES: { id: StyleId; name: string; description: string }[] = [
   { id: 'chibi', name: 'chibi', description: '经典 Q 版 · 现代与奇幻装扮' },
+  { id: 'guofeng', name: '国风 Q 版', description: '国风 Q 版 · 发髻冠饰 · 交领襦裙 · 云纹刺绣' },
 ];
 
 function chibiCatalog(gender: Gender): PartCatalog {
@@ -44,6 +46,7 @@ function chibiCatalog(gender: Gender): PartCatalog {
 }
 
 const CHIBI = { male: chibiCatalog('male'), female: chibiCatalog('female') };
-export function getCatalog(_style: StyleId, gender: Gender): PartCatalog {
-  return CHIBI[gender];
+const GUOFENG = { male: guofengCatalog('male'), female: guofengCatalog('female') };
+export function getCatalog(style: StyleId, gender: Gender): PartCatalog {
+  return (style === 'guofeng' ? GUOFENG : CHIBI)[gender];
 }

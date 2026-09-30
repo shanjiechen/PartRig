@@ -87,11 +87,11 @@ function renderInto(ctx: CanvasRenderingContext2D, app: Appearance, pose: Pose, 
   if (P.bottom.kind === 'skirt' && bs) {
     prims.push({
       z: wz('pelvis') - 1.6,
-      draw: () => drawSkirt(rc, 1.5, bs.len, bs.flare, pal.bottom, { pleats: bs.pleats, puff: bs.puff, plaid: bs.plaid ? P.bottom.color2 : undefined }),
+      draw: () => drawSkirt(rc, 1.5, bs.len, bs.flare, pal.bottom, { pleats: bs.pleats, puff: bs.puff, plaid: bs.plaid ? P.bottom.color2 : undefined, embroidery: P.bottom.embroidery, trim: P.bottom.embroidery ? P.bottom.color2 : undefined }),
     });
   }
   const ts = P.top.skirt;
-  if (ts) prims.push({ z: wz('pelvis') - 1.3, draw: () => drawSkirt(rc, 1.2, ts.len, ts.flare, pal.top, { trim: P.top.color2 }) });
+  if (ts) prims.push({ z: wz('pelvis') - 1.3, draw: () => drawSkirt(rc, 1.2, ts.len, ts.flare, pal.top, { trim: P.top.color2, embroidery: P.top.embroidery }) });
   prims.push({ z: wz('chest', [0, 8, 0]), draw: () => drawTorso(rc, P.top, P.bottom) });
   prims.push({ z: wz('chest', [0, 15, 0]) - 0.4, draw: () => drawNeck(rc) });
   if (P.top.cape) prims.push({ z: wz('chest', [0, 6, -7]) - 0.5, draw: () => drawCape(rc, P.top.cape!) });
@@ -145,9 +145,11 @@ function renderInto(ctx: CanvasRenderingContext2D, app: Appearance, pose: Pose, 
   ctx.translate(o.x, o.y);
   ctx.scale(o.scale, o.scale);
   if (o.shadow !== false) {
-    const g = projectWorld([rig.root.pos[0], 0, rig.root.pos[2]]);
+    const fallen = (pose.fx.dead ?? 0) > .9;
+    const g = fallen ? projectWorld([(rig.head.pos[0] + rig.root.pos[0]) / 2, 0, (rig.head.pos[2] + rig.root.pos[2]) / 2])
+      : projectWorld([rig.root.pos[0], 0, rig.root.pos[2]]);
     ctx.beginPath();
-    ctx.ellipse(g.x, g.y, 12, 4.2, 0, 0, Math.PI * 2);
+    ctx.ellipse(g.x, g.y, fallen ? 12 + 16 * Math.abs(Math.cos(o.yaw)) : 12, fallen ? 4.2 + 4 * Math.abs(Math.sin(o.yaw)) : 4.2, 0, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(40,20,50,0.18)';
     ctx.fill();
   }

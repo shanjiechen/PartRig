@@ -60,9 +60,10 @@ export function defaultAppearance(style: StyleId = 'chibi', gender: Gender = 'fe
   };
   const c = getCatalog(style, gender);
   for (const slot of SLOTS) if (!c[slot.id].some((p) => p.id === parts[slot.id])) parts[slot.id] = c[slot.id][0].id;
+  if (style === 'guofeng') parts.headwear = c.headwear[1].id;
   return { style, gender, skin: SKIN_TONES[1].color,
-    hairColor: gender === 'male' ? HAIR_COLORS[0].color : HAIR_COLORS[10].color,
-    eyeColor: EYE_COLORS[2].color, parts, tints: {} };
+    hairColor: style === 'guofeng' || gender === 'male' ? HAIR_COLORS[0].color : HAIR_COLORS[10].color,
+    eyeColor: EYE_COLORS[style === 'guofeng' ? 0 : 2].color, parts, tints: {} };
 }
 
 export function changeAppearance(app: Appearance, style: StyleId, gender: Gender): Appearance {

@@ -4,6 +4,35 @@ import { CLIPS, clipById } from '../src/anim/clips';
 import { samplePose } from '../src/core/animation';
 import { sanitizeAppearance } from '../src/core/appearance';
 import { defaultAppearance, randomAppearance, slotsFor, changeAppearance, resolveParts } from '../src/parts/index';
+import { STYLES, getCatalog } from '../src/parts/catalog';
+import { resolveWeapon } from '../src/parts/index';
+
+test('国风男女每个部位至少12款，并且ID唯一，配置可以往返', () => {
+  assert.ok(STYLES.some((s) => s.id === 'guofeng'));
+  for (const gender of ['male', 'female'] as const) {
+    const app = defaultAppearance('guofeng', gender);
+    for (const slot of slotsFor(app)) {
+      assert.ok(slot.items.length >= 12, `${gender}/${slot.id}不足12款`);
+      assert.equal(new Set(slot.items.map((p) => p.id)).size, slot.items.length);
+      assert.ok(slot.items.some((p) => p.id === app.parts[slot.id]));
+    }
+    assert.deepEqual(sanitizeAppearance(JSON.parse(JSON.stringify(app))), app);
+    for (const prop of ['sword', 'spear', 'bow', 'staff', 'potion']) assert.ok(resolveWeapon(app, prop)?.draw);
+    assert.notDeepEqual(getCatalog('guofeng', gender).hair, getCatalog('chibi', gender).hair);
+  }
+});
+
+test('国风男女目录独立，切换及随机配置均使用有效国风部件', () => {
+  const female = defaultAppearance('guofeng', 'female');
+  const male = changeAppearance(female, 'guofeng', 'male');
+  assert.notEqual(female.parts.hair, male.parts.hair);
+  assert.notEqual(female.parts.top, male.parts.top);
+  assert.equal(slotsFor(female).find((s) => s.id === 'beard')?.name, '面饰');
+  for (const gender of ['male', 'female'] as const) for (let i = 0; i < 20; i++) {
+    const app = randomAppearance('guofeng', gender);
+    for (const slot of slotsFor(app)) assert.ok(slot.items.some((p) => p.id === app.parts[slot.id]));
+  }
+});
 
 test('旧配置迁移为 chibi，保留有效部件并过滤非法数据', () => {
   const old = { ...defaultAppearance(), style: undefined, parts: { hair: 'twintail', eyes: 'missing' }, tints: { top: 'bad', bottom: '#123abc' } };

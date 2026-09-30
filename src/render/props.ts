@@ -6,6 +6,7 @@ export interface WeaponDef {
   id: string;
   name: string;
   hand: 'L' | 'R';
+  effect?: 'staff' | 'wand';
   /** Hand-local tip/base used for motion trails. */
   tip?: Vec3;
   base?: Vec3;
@@ -227,9 +228,10 @@ export function drawEffects(rc: RenderCtx, weapon: WeaponDef | undefined, trail:
     const a = rc.bp('handL', [0, -1.4, 0]), b = rc.bp('handR', [0, -1.4, 0]);
     return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, z: Math.max(a.z, b.z) };
   };
-  const orb = weapon?.id === 'staff' ? rc.bp('handR', [0, G, 16.6]) : weapon?.id === 'wand' ? rc.bp('handR', [0, G, 9]) : handMid();
+  const effect = weapon?.effect ?? weapon?.id;
+  const orb = effect === 'staff' ? rc.bp('handR', [0, G, 16.6]) : effect === 'wand' ? rc.bp('handR', [0, G, 9]) : handMid();
   const glow = fx.glow ?? 0;
-  if (glow > 0.05 && weapon?.id !== 'staff') {
+  if (glow > 0.05 && effect !== 'staff') {
     const r = 3 + glow * 5;
     const g = ctx.createRadialGradient(orb.x, orb.y, 0, orb.x, orb.y, r * 1.6);
     g.addColorStop(0, 'rgba(255,255,255,0.95)');

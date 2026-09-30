@@ -2,6 +2,7 @@ import { ink, mix, rgba, shade } from '../core/color';
 import { clamp, lerp, mulV, TAU, type Vec3 } from '../core/math';
 import type { BoneName } from '../core/skeleton';
 import type { BottomDef, ShoeDef, TopDef } from '../parts/clothing';
+import { drawMotif, ribbon, type Motif } from '../parts/ornaments';
 import { circle, drawLimb, fs, heart, hull, OL, polyPath, projectWorld, smoothPath, star, type P2, type RenderCtx, type Seg, type XY } from './context';
 
 // ---------------- Torso geometry ----------------
@@ -157,6 +158,9 @@ export function drawTorso(rc: RenderCtx, top: TopDef, bottom: BottomDef) {
     surfLine(rc, T, [[0.34, top.hem], [0.34, 17.6]], ink(tc), 0.7);
   }
   if (top.zipper) surfLine(rc, T, [[0, top.hem], [0, 17]], shade(tc, -0.4), 0.5);
+  if (top.embroidery) {
+    for (const a of [-.55, .55, Math.PI]) tDecal(rc, T, a, 8.6, () => drawMotif(ctx, top.embroidery!, 0, 0, 1.8, t2));
+  }
   if (top.pocket) surfPoly(rc, T, [[-0.62, 0], [-0.45, 5.2], [0.45, 5.2], [0.62, 0]], shade(tc, -0.06));
   if (bottom.straps) {
     for (const s of [-1, 1]) {
@@ -171,6 +175,10 @@ export function drawTorso(rc: RenderCtx, top: TopDef, bottom: BottomDef) {
     band(rc, T, bh, bh + (top.collar === 'cross' ? 4.5 : 1.8), top.belt);
     if (top.collar !== 'cross') tDecal(rc, T, 0, bh + 0.9, () => { ctx.beginPath(); ctx.rect(-1.2, -1.1, 2.4, 2.2); fs(ctx, '#e8c050', '#6a5a1a', 0.5); });
   }
+  if (top.sash) tDecal(rc, T, .15, 3, () => {
+    ribbon(ctx, -.8, 0, 12, top.sash!, -.7);
+    ribbon(ctx, .8, 0, 10, top.sash!, .5);
+  });
 
   const skin = pal.skin;
   switch (top.collar) {
@@ -268,7 +276,7 @@ export function drawSkirt(
   len: number,
   flare: number,
   color: string,
-  o: { pleats?: boolean; puff?: boolean; plaid?: string; trim?: string } = {},
+  o: { pleats?: boolean; puff?: boolean; plaid?: string; trim?: string; embroidery?: Motif } = {},
 ) {
   const { ctx } = rc;
   const d = rc.dims;
@@ -328,6 +336,12 @@ export function drawSkirt(
   if (o.trim && botFront.length > 1) {
     polyPath(ctx, botFront.map((b) => b.p), false);
     fs(ctx, null, o.trim, 1.6);
+  }
+  if (o.embroidery) for (let i = 0; i < n; i += 4) {
+    const a = (i / n) * TAU;
+    if (mulV(pel.rot, [Math.sin(a), 0, Math.cos(a)])[2] < .15) continue;
+    const p = { x: lerp(top[i].x, bot[i].x, .7), y: lerp(top[i].y, bot[i].y, .7) };
+    drawMotif(ctx, o.embroidery, p.x, p.y, 1.3, o.trim ?? '#e8d4a1');
   }
   if (o.puff && botFront.length > 1) {
     ctx.beginPath();
@@ -487,6 +501,10 @@ export function drawLeg(rc: RenderCtx, side: 'L' | 'R', bottom: BottomDef, shoe:
       ctx.rect(m.x - 1.6, m.y - 1.4, 3.2, 2.8);
       fs(ctx, shade(pc, -0.08), ink(pc), 0.5);
     }
+    if (bottom.embroidery) {
+      const p = at(hip, knee, .65);
+      drawMotif(ctx, bottom.embroidery, p.x, p.y, 1.15, bottom.color2 ?? '#e8d4a1');
+    }
   }
   drawShoe(rc, side, shoe, ankle, knee);
 }
@@ -543,6 +561,10 @@ function drawShoe(rc: RenderCtx, side: 'L' | 'R', s: ShoeDef, ankle: P2, knee: P
       ctx.lineTo(a.x - 1.2, a.y + 0.4);
       fs(ctx, null, s.laces, 0.5);
     }
+  }
+  if (s.embroidery) {
+    const p = fp([0, -.8, 2]);
+    drawMotif(ctx, s.embroidery, p.x, p.y, .85, '#efe1b6');
   }
 }
 

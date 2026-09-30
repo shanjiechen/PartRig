@@ -83,6 +83,7 @@ export function drawHeadGroup(rc: RenderCtx, P: HeadParts) {
       decal(rc, 0, MOUTH_V, () => mouth.draw(ctx, female), { min: -0.25, minScale: 0.45 });
       ctx.restore();
       drawBeardDetails(rc, P.beard, shade(hairC, -0.1));
+      P.beard.draw?.(rc, shade(hairC, -0.1));
       drawNose(rc, P.nose);
     }
 

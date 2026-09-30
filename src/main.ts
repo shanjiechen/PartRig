@@ -60,7 +60,7 @@ root.innerHTML = `
 <header><h1>Q版纸娃娃动画系统</h1><small>2.5D 骨骼 · 八方向 · 部件自由组合</small></header>
 <main>
   <section class="card stage">
-    <canvas id="stage"></canvas>
+    <canvas id="stage" role="img" aria-label="角色骨骼动画预览"></canvas>
     <div class="controls">
       <div>
         <div class="label" style="margin:10px 0 6px">朝向</div>
@@ -72,7 +72,7 @@ root.innerHTML = `
         <div class="row">
           <button id="play">暂停</button>
           <button id="replay">重播</button>
-          <span class="label">速度</span><input id="speed" type="range" min="0.2" max="2" step="0.05" value="1" />
+          <label class="label" for="speed">速度</label><input id="speed" type="range" min="0.2" max="2" step="0.05" value="1" />
           <div class="seg"><button data-view="single" class="active">单视图</button><button data-view="eight">八方向</button></div>
         </div>
       </div>
@@ -80,7 +80,7 @@ root.innerHTML = `
     <div class="row">
       <button class="primary" id="random">随机角色</button>
       <button id="reset">重置</button>
-      <span class="label">帧数</span><input id="frames" type="number" min="2" max="24" value="8" style="width:56px" />
+      <label class="label" for="frames">帧数</label><input id="frames" type="number" min="2" max="24" value="8" style="width:56px" />
       <button id="sheet">导出精灵图 PNG</button>
       <button id="export">导出配置</button>
       <button id="import">导入配置</button>
@@ -149,7 +149,9 @@ function drawThumb(canvas: HTMLCanvasElement, variant: Appearance, focus: Focus,
   canvas.height = size * dpr;
   const c = canvas.getContext('2d')!;
   c.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const f = FOCUS[focus];
+  const f = { ...FOCUS[focus] };
+  if (variant.style === 'guofeng' && focus === 'head') f.scale = 1.15;
+  if (slot === 'weapon') { f.cy = 28; f.scale = 1.8; }
   const yaw = slot === 'weapon' ? 0.9 : slot === 'ears' ? 0.25 : f.yaw;
   drawCharacter(c, variant, idlePose, {
     x: size / 2,
@@ -169,7 +171,10 @@ function renderPanel() {
     b.classList.toggle('active', b.dataset.style === app.style);
     b.setAttribute('aria-pressed', String(b.dataset.style === app.style));
   });
-  document.querySelectorAll<HTMLButtonElement>('#gender button').forEach((b) => b.classList.toggle('active', b.dataset.g === app.gender));
+  document.querySelectorAll<HTMLButtonElement>('#gender button').forEach((b) => {
+    b.classList.toggle('active', b.dataset.g === app.gender);
+    b.setAttribute('aria-pressed', String(b.dataset.g === app.gender));
+  });
   $('skin').innerHTML = swatchHtml(SKIN_TONES, app.skin);
   $('hairc').innerHTML = swatchHtml(HAIR_COLORS, app.hairColor);
   $('eyec').innerHTML = swatchHtml(EYE_COLORS, app.eyeColor);
@@ -298,8 +303,8 @@ function drawBackdrop(c: CanvasRenderingContext2D, x: number, y: number, rx: num
   c.beginPath();
   c.ellipse(x, y, rx, rx * 0.3, 0, 0, Math.PI * 2);
   const g = c.createRadialGradient(x, y, 0, x, y, rx);
-  g.addColorStop(0, 'rgba(210,190,235,0.55)');
-  g.addColorStop(1, 'rgba(210,190,235,0)');
+  g.addColorStop(0, app.style === 'guofeng' ? 'rgba(164,186,155,0.45)' : 'rgba(210,190,235,0.55)');
+  g.addColorStop(1, app.style === 'guofeng' ? 'rgba(164,186,155,0)' : 'rgba(210,190,235,0)');
   c.fillStyle = g;
   c.fill();
   c.restore();
@@ -344,7 +349,7 @@ function frame(ts: number) {
       const cx = ((i % 4) + 0.5) * (STAGE / 4);
       const cy = (Math.floor(i / 4) + 1) * (STAGE / 2) - 44;
       drawBackdrop(sctx, cx, cy, 55);
-      drawCharacter(sctx, app, pose, { ...opts, x: cx, y: cy, scale: 1.95, yaw: d.yaw });
+      drawCharacter(sctx, app, pose, { ...opts, x: cx, y: cy, scale: clip.loop === false ? 1.35 : 1.95, yaw: d.yaw });
       sctx.fillStyle = '#8a7a98';
       sctx.fillText(d.name, cx, cy + 30);
     });

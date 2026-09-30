@@ -1,3 +1,5 @@
+import type { Motif } from './ornaments';
+
 export type Sleeve = 'none' | 'short' | 'long' | 'wide' | 'puff';
 export type Collar = 'round' | 'v' | 'hood' | 'sailor' | 'cross' | 'high' | 'lapel' | 'square' | 'none';
 
@@ -24,6 +26,8 @@ export interface TopDef {
   armor?: boolean;
   pocket?: boolean;
   gloves?: string;
+  embroidery?: Motif;
+  sash?: string;
 }
 
 export const TOPS: TopDef[] = [
@@ -65,6 +69,7 @@ export interface BottomDef {
   cuff?: string;
   straps?: boolean;
   pockets?: boolean;
+  embroidery?: Motif;
 }
 
 export const BOTTOMS: BottomDef[] = [
@@ -99,6 +104,7 @@ export interface ShoeDef {
   laces?: string;
   metal?: boolean;
   wide?: number;
+  embroidery?: Motif;
 }
 
 export const SHOES: ShoeDef[] = [

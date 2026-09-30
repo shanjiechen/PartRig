@@ -12,6 +12,8 @@ export interface BeardDef {
   region?: { line: Line; bulk: number; down?: number; stubble?: boolean };
   stache?: 'basic' | 'handlebar' | 'fu' | 'thin';
   chin?: 'goatee' | 'circle' | 'point' | 'long' | 'braid';
+  /** Optional face accessory, used by the female guofeng catalog. */
+  draw?: (rc: RenderCtx, color: string) => void;
 }
 
 const fullLine: Line = (a) => (Math.abs(a) < 1.75 ? lerp(0.56, 0.12, smooth(Math.min(1, Math.abs(a) / 1.6))) : 9);
