@@ -28,7 +28,7 @@ export const SLOTS: SlotInfo[] = [
 
 export function slotsFor(app: Appearance) {
   const c = getCatalog(app.style, app.gender);
-  return SLOTS.map((slot) => ({ ...slot, name: slot.id === 'beard' && app.style === 'guofeng' && app.gender === 'female' ? '面饰' : slot.name, items: c[slot.id] }));
+  return SLOTS.map((slot) => ({ ...slot, name: slot.id === 'beard' && app.style !== 'chibi' && app.gender === 'female' ? '面饰' : slot.name, items: c[slot.id] }));
 }
 
 const find = <T extends { id: string }>(list: T[], id: string) => list.find((i) => i.id === id) ?? list[0];
@@ -61,6 +61,12 @@ export function defaultAppearance(style: StyleId = 'chibi', gender: Gender = 'fe
   const c = getCatalog(style, gender);
   for (const slot of SLOTS) if (!c[slot.id].some((p) => p.id === parts[slot.id])) parts[slot.id] = c[slot.id][0].id;
   if (style === 'guofeng') parts.headwear = c.headwear[1].id;
+  if (style === 'aistory') {
+    parts.eyes = `ai-${gender[0]}-eyes-big`;
+    parts.nose = `ai-${gender[0]}-nose-dot`;
+    parts.mouth = `ai-${gender[0]}-mouth-small`;
+    return { style, gender, skin: '#eac9a8', hairColor: '#29272b', eyeColor: '#69533c', parts, tints: {} };
+  }
   return { style, gender, skin: SKIN_TONES[1].color,
     hairColor: style === 'guofeng' || gender === 'male' ? HAIR_COLORS[0].color : HAIR_COLORS[10].color,
     eyeColor: EYE_COLORS[style === 'guofeng' ? 0 : 2].color, parts, tints: {} };

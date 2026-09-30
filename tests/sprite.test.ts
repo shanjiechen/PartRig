@@ -25,6 +25,28 @@ test('国风男女每个部位至少12款，并且ID唯一，配置可以往返'
   }
 });
 
+test('Aistory 冒险风格有独立的男女目录和紧凑比例，支持配置往返', () => {
+  assert.ok(STYLES.some(s => s.id === 'aistory'));
+  for (const gender of ['male', 'female'] as const) {
+    const app = defaultAppearance('aistory', gender);
+    for (const slot of slotsFor(app)) {
+      assert.ok(slot.items.length >= 12, `${gender}/${slot.id}不足12款`);
+      assert.equal(new Set(slot.items.map(p => p.id)).size, slot.items.length);
+      assert.ok(slot.items.some(p => p.id === app.parts[slot.id]));
+    }
+    assert.deepEqual(sanitizeAppearance(JSON.parse(JSON.stringify(app))), app);
+    assert.ok(resolveParts(app).hair.locks?.length, '应使用独立分束刘海');
+    assert.ok(resolveParts(app).top.adventure, '默认衣服应有皮带、腰包等冒险者细节');
+    assert.ok(bodyDims(gender, 'aistory').headR < bodyDims(gender, 'chibi').headR);
+    assert.ok(bodyDims(gender, 'aistory').chestW > bodyDims(gender, 'chibi').chestW);
+    for (const prop of ['sword', 'spear', 'bow', 'staff', 'potion']) assert.ok(resolveWeapon(app, prop)?.draw);
+    const random = randomAppearance('aistory', gender);
+    assert.equal(random.style, 'aistory');
+    for (const slot of slotsFor(random)) assert.ok(slot.items.some(p => p.id === random.parts[slot.id]));
+  }
+  assert.notEqual(defaultAppearance('aistory', 'male').parts.hair, defaultAppearance('aistory', 'female').parts.hair);
+});
+
 test('国风男女目录独立，切换及随机配置均使用有效国风部件', () => {
   const female = defaultAppearance('guofeng', 'female');
   const male = changeAppearance(female, 'guofeng', 'male');

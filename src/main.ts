@@ -151,6 +151,10 @@ function drawThumb(canvas: HTMLCanvasElement, variant: Appearance, focus: Focus,
   c.setTransform(dpr, 0, 0, dpr, 0, 0);
   const f = { ...FOCUS[focus] };
   if (variant.style === 'guofeng' && focus === 'head') f.scale = 1.15;
+  if (variant.style === 'aistory') {
+    f.cy = {face:47,head:52,body:33,legs:12}[focus];
+    if (focus === 'face') f.scale = 2.5;
+  }
   if (slot === 'weapon') { f.cy = 28; f.scale = 1.8; }
   const yaw = slot === 'weapon' ? 0.9 : slot === 'ears' ? 0.25 : f.yaw;
   drawCharacter(c, variant, idlePose, {
@@ -303,8 +307,9 @@ function drawBackdrop(c: CanvasRenderingContext2D, x: number, y: number, rx: num
   c.beginPath();
   c.ellipse(x, y, rx, rx * 0.3, 0, 0, Math.PI * 2);
   const g = c.createRadialGradient(x, y, 0, x, y, rx);
-  g.addColorStop(0, app.style === 'guofeng' ? 'rgba(164,186,155,0.45)' : 'rgba(210,190,235,0.55)');
-  g.addColorStop(1, app.style === 'guofeng' ? 'rgba(164,186,155,0)' : 'rgba(210,190,235,0)');
+  const green = app.style === 'guofeng' || app.style === 'aistory';
+  g.addColorStop(0, green ? 'rgba(164,186,155,0.45)' : 'rgba(210,190,235,0.55)');
+  g.addColorStop(1, green ? 'rgba(164,186,155,0)' : 'rgba(210,190,235,0)');
   c.fillStyle = g;
   c.fill();
   c.restore();
@@ -341,7 +346,7 @@ function frame(ts: number) {
   sctx.clearRect(0, 0, STAGE, STAGE);
   if (view === 'single') {
     drawBackdrop(sctx, STAGE / 2, STAGE * 0.8, 170);
-    drawCharacter(sctx, app, pose, { ...opts, x: STAGE / 2, y: STAGE * 0.8, scale: 4.1, yaw: DIRECTIONS[dirIndex].yaw });
+    drawCharacter(sctx, app, pose, { ...opts, x: STAGE / 2, y: STAGE * 0.8, scale: app.style==='aistory' ? 5 : 4.1, yaw: DIRECTIONS[dirIndex].yaw });
   } else {
     sctx.font = '13px sans-serif';
     sctx.textAlign = 'center';

@@ -135,6 +135,20 @@ button.item.active { color: var(--ink); }
 :root[data-style='guofeng'] .item.active { background: #eaf0e4; }
 :root[data-style='guofeng'] .item:hover { border-color: #a0b4a3; }
 
+:root[data-style='aistory'] {
+  --bg: #eeeee4;
+  --panel: #fbfaf3;
+  --ink: #334438;
+  --muted: #6b7566;
+  --accent: #55714d;
+  --accent2: #997344;
+  --line: #d9d7c6;
+}
+:root[data-style='aistory'] body { background: var(--bg); }
+:root[data-style='aistory'] .stage canvas { background: linear-gradient(#f8f6e9,#dce5d5); }
+:root[data-style='aistory'] .item { background: #f4f3e9; }
+:root[data-style='aistory'] .item.active { background: #e3ead9; }
+
 @media (max-width: 980px) {
   main { grid-template-columns: minmax(0, 1fr); }
 }

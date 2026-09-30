@@ -3,7 +3,7 @@ import type { FaceDef } from '../parts/faces';
 import { faceOutline } from '../parts/faces';
 import { drawBrow, drawEye, type BrowDef, type EyeDef, type MouthDef, MOUTHS, type NoseDef } from '../parts/features';
 import { drawBeardDetails, drawBeardRegion, drawEars, type BeardDef, type EarDef, type MarkDef } from '../parts/face-extras';
-import { drawAhoge, drawBun, drawCap, drawTuft, stubbleColor, type HairDef } from '../parts/hair';
+import { drawAhoge, drawBun, drawCap, drawHairLock, drawTuft, stubbleColor, type HairDef } from '../parts/hair';
 import type { HatDef } from '../parts/headwear';
 import { decal, fs, hp, materialFill, OL, surf, withHead, type RenderCtx } from './context';
 
@@ -38,6 +38,8 @@ export function drawHeadGroup(rc: RenderCtx, P: HeadParts) {
   const tufts = (P.hair.tufts ?? []).filter((t) => !(hideTufts && t.v < -0.2));
   const tz = (a: number, v: number) => hp(h, surf(a, v)).z;
   const buns = P.hair.buns ?? [];
+  const locks = hideTufts ? [] : P.hair.locks ?? [];
+  const lockDepth = (lock: typeof locks[number]) => lock.pts.reduce((sum, q) => sum + hp(h, q).z, 0) / lock.pts.length;
   const female = rc.app.gender === 'female';
   const st = {
     blink: (fx.dead ?? 0) > 0.5 || rc.time % 3.4 < 0.13,
@@ -51,6 +53,7 @@ export function drawHeadGroup(rc: RenderCtx, P: HeadParts) {
     // ---- behind the head ----
     for (const t of tufts) if (tz(t.a, t.v) < 0) drawTuft(rc, t, puff, hairC);
     for (const b of buns) if (!hideTufts && hp(h, b.at).z < 0) drawBun(rc, b, hairC);
+    for (const lock of locks) if (lockDepth(lock) < 0) drawHairLock(rc, lock, hairC);
     drawEars(rc, P.ears, 'back', !!hat.hideTopEars);
     hat.draw?.(rc, 'back', hc, hc2, puff);
 
@@ -94,7 +97,8 @@ export function drawHeadGroup(rc: RenderCtx, P: HeadParts) {
     // ---- hair ----
     for (const t of tufts) if (!t.round && tz(t.a, t.v) >= 0) drawTuft(rc, t, puff, hairC);
     if (P.hair.under) drawCap(rc, P.hair.under, 0.02, stubbleColor(skin, hairC));
-    if (P.hair.cap) drawCap(rc, P.hair.cap.line, P.hair.cap.puff, hairC, { shine: true });
+    if (P.hair.cap) drawCap(rc, P.hair.cap.line, P.hair.cap.puff, hairC, { shine: true, softShine: !!P.hair.locks });
+    for (const lock of locks) if (lockDepth(lock) >= 0) drawHairLock(rc, lock, hairC);
     drawEars(rc, P.ears, 'over', !!hat.hideTopEars);
     for (const t of tufts) if (t.round && tz(t.a, t.v) >= 0) drawTuft(rc, t, puff, hairC);
     for (const b of buns) if (!hideTufts && hp(h, b.at).z >= 0) drawBun(rc, b, hairC);

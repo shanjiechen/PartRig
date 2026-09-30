@@ -1,5 +1,5 @@
 export type Gender = 'male' | 'female';
-export type StyleId = 'chibi' | 'guofeng';
+export type StyleId = 'chibi' | 'guofeng' | 'aistory';
 
 export const SLOT_IDS = [
   'face', 'ears', 'brows', 'eyes', 'nose', 'mouth', 'beard', 'marks',

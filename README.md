@@ -11,9 +11,11 @@ npm test
 npm run build
 ```
 
-右侧选择 `chibi` 或国风 Q 版，再选择性别与部位。两套风格、男女角色各自保存编辑结果；随机角色和重置作用于当前风格及性别。旧 JSON 配置没有 `style` 字段时按 `chibi` 读取。
+右侧选择 `chibi`、国风 Q 版或 `Aistory 冒险`，再选择性别与部位。三套风格、男女角色各自保存编辑结果；随机角色和重置作用于当前风格及性别。旧 JSON 配置没有 `style` 字段时按 `chibi` 读取。
 
 国风男女各有 14 个部位目录：脸型、耳朵、眉毛、眼睛、鼻子、嘴巴、胡子/面饰、面部特征、发型、头饰、上装、下装、鞋靴、手持物。前 13 个目录各 12 个选项，手持物提供 12 件实物以及随动作、空手，共 340 个选项。女性的胡子目录显示为面饰，包含颊钿、珠链、面纱等。
+
+`Aistory 冒险` 参考本机 Aistory 游戏实际使用的玩家形象（`../aistory-web/art/source/cartoon-v3/player.png`），用本项目的路径和骨骼重新绘制。默认造型为黑色高马尾、分束刘海、森林绿短袍、米白袖衬和裤子、皮革斜挎带、腰包与靴子，采用独立的紧凑比例。男女各有 12 款五官、发型、头饰、上装、下装和鞋靴，手持物另含战锤、魔典、提灯，共 340 个选项；保留女性上身体积及全部八方向动画。
 
 死亡动作播放一次，完成后保持倒地；点击重播或播放可以再次播放。导出死亡精灵图会包含最终倒地帧。其余动作循环播放。PNG 按行排列八方向，按列排列动画帧，文件名包含风格、性别、动作和帧数。
 
@@ -23,6 +25,7 @@ npm run build
 
 - `src/parts/catalog.ts`：风格注册、男女目录；`getCatalog(style, gender)` 统一查找。
 - `src/parts/guofeng-*.ts`：国风五官、发髻冠饰、服饰、武器。
+- `src/parts/aistory*.ts`：Aistory 冒险部件、分束刘海、高马尾、旅行服和配饰。
 - `src/parts/ornaments.ts`：云纹、莲花、梅花、竹叶等刺绣路径。
 - `src/core/appearance.ts`：配置验证和旧配置兼容。
 - `src/anim/clips.ts`：骨骼关键帧；`loop: false` 表示单次动作，允许终点 `t: 1`。
@@ -30,7 +33,7 @@ npm run build
 
 ## 浏览器验证
 
-`tests/browser.mjs` 使用独立的 Playwright Chromium 验证所有国风选项的八方向绘制、目录交互、档案恢复、死亡终态、PNG 最终帧、配置导入和响应式布局。需要本机已有 Playwright 及 Chromium；不影响应用依赖。可通过 `SPRITE_PLAYWRIGHT` 指向已有 Playwright 包，`SPRITE_URL` 指向开发服务。
+`tests/browser.mjs` 使用独立的 Playwright Chromium 验证所有国风或 Aistory 选项的八方向绘制、目录交互、档案恢复、死亡终态、PNG 最终帧、配置导入和响应式布局。需要本机已有 Playwright 及 Chromium；不影响应用依赖。可通过 `SPRITE_PLAYWRIGHT` 指向已有 Playwright 包，`SPRITE_URL` 指向开发服务，`SPRITE_STYLE=aistory` 验证新风格（默认 `guofeng`）。
 
 ```powershell
 $env:SPRITE_PLAYWRIGHT = '你的 Playwright 包绝对路径'
@@ -41,4 +44,4 @@ node tests/visual-preview.mjs
 
 截图保存在被 Git 忽略的 `.shots/`，测试构建暂存在 `.test-build/`。初始代码快照为本地提交 `01da25d`。
 
-`render-regression.mjs` 对四种风格/性别组合的八方向进行 64 次袖子与头部的像素对比，确保待机肩膀不会覆盖脸；另遍历全部动作的 3,168 帧。`visual-preview.mjs` 生成待机、挥手、挥砍、倒地的接触表和角色大图，可用 `PREVIEW_PREFIX` 设置文件名前缀。本次精细化前的回滚点为 `d9a9778`。
+`render-regression.mjs` 对六种风格/性别组合的八方向进行 96 次袖子与头部的像素对比，确保待机肩膀不会覆盖脸；另遍历全部动作的 4,752 帧。`visual-preview.mjs` 生成待机、挥手、挥砍、倒地的接触表和角色大图，可用 `PREVIEW_PREFIX` 设置文件名前缀、`PREVIEW_STYLES=aistory` 指定风格。本次精细化前的回滚点为 `d9a9778`，新增 Aistory 风格前的版本为 `763d3c8`。

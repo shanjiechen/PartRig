@@ -21,7 +21,7 @@ try {
     const ctx = canvas.getContext('2d');
     const failures = [];
     let checked = 0;
-    for (const style of ['chibi', 'guofeng']) for (const gender of ['male', 'female']) {
+    for (const style of ['chibi', 'guofeng', 'aistory']) for (const gender of ['male', 'female']) {
       const app = defaultAppearance(style, gender);
       app.parts.weapon = 'none';
       const parts = resolveParts(app);
@@ -31,7 +31,8 @@ try {
       try {
         for (const dir of DIRECTIONS) for (const time of [.3, 1.1]) {
           const pose = samplePose(CLIPS.find(c => c.id === 'idle'), time);
-          const head = makeHeadView(solveRig(pose, bodyDims(gender), dir.yaw), bodyDims(gender), parts.face.sx, parts.face.sy);
+          const dims = bodyDims(gender, style);
+          const head = makeHeadView(solveRig(pose, dims, dir.yaw), dims, parts.face.sx, parts.face.sy);
           const maskCanvas = document.createElement('canvas'); maskCanvas.width = maskCanvas.height = 480;
           const maskCtx = maskCanvas.getContext('2d');
           maskCtx.translate(240, 425); maskCtx.scale(5, 5); maskCtx.translate(head.cx, head.cy); maskCtx.rotate(-head.roll);
@@ -71,7 +72,7 @@ try {
     } finally { gestureTop.gloves = originalGloves; }
     // Exercise the full animation range, including fallen poses and front crossing hands/props.
     let animationFrames = 0;
-    for (const style of ['chibi', 'guofeng']) for (const gender of ['male', 'female']) for (const clip of CLIPS) for (const dir of DIRECTIONS) for (let frame = 0; frame <= 8; frame++) {
+    for (const style of ['chibi', 'guofeng', 'aistory']) for (const gender of ['male', 'female']) for (const clip of CLIPS) for (const dir of DIRECTIONS) for (let frame = 0; frame <= 8; frame++) {
       const time = clip.duration * frame / 8;
       ctx.clearRect(0, 0, 480, 480);
       drawCharacter(ctx, defaultAppearance(style, gender), samplePose(clip, time), { x: 240, y: 425, scale: 4, yaw: dir.yaw, time, prop: clip.prop });

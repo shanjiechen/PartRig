@@ -7,6 +7,7 @@ import { HAIRS, type HairDef } from './hair';
 import { HATS, type HatDef } from './headwear';
 import { WEAPONS, type WeaponDef } from '../render/props';
 import { guofengCatalog } from './guofeng';
+import { aistoryCatalog } from './aistory';
 
 export interface PartCatalog {
   face: FaceDef[]; ears: EarDef[]; brows: BrowDef[]; eyes: EyeDef[];
@@ -18,6 +19,7 @@ export interface PartCatalog {
 export const STYLES: { id: StyleId; name: string; description: string }[] = [
   { id: 'chibi', name: 'chibi', description: '经典 Q 版 · 现代与奇幻装扮' },
   { id: 'guofeng', name: '国风 Q 版', description: '国风 Q 版 · 发髻冠饰 · 交领襦裙 · 云纹刺绣' },
+  { id: 'aistory', name: 'Aistory 冒险', description: '手绘 RPG · 分束刘海与高马尾 · 绿袍皮革 · 紧凑比例' },
 ];
 
 function chibiCatalog(gender: Gender): PartCatalog {
@@ -47,6 +49,8 @@ function chibiCatalog(gender: Gender): PartCatalog {
 
 const CHIBI = { male: chibiCatalog('male'), female: chibiCatalog('female') };
 const GUOFENG = { male: guofengCatalog('male'), female: guofengCatalog('female') };
+const AISTORY = { male: aistoryCatalog('male'), female: aistoryCatalog('female') };
+const CATALOGS: Record<StyleId, Record<Gender, PartCatalog>> = { chibi: CHIBI, guofeng: GUOFENG, aistory: AISTORY };
 export function getCatalog(style: StyleId, gender: Gender): PartCatalog {
-  return (style === 'guofeng' ? GUOFENG : CHIBI)[gender];
+  return CATALOGS[style][gender];
 }

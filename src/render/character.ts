@@ -3,7 +3,7 @@ import type { Vec3 } from '../core/math';
 import type { Appearance } from '../core/types';
 import { resolveParts, resolveWeapon } from '../parts/index';
 import { drawBackHair, drawHairTube } from '../parts/hair';
-import { drawArm, drawCape, drawHood, drawLeg, drawNeck, drawSkirt, drawTorso } from './body';
+import { drawAdventureSkirt, drawArm, drawCape, drawHood, drawLeg, drawNeck, drawSkirt, drawTorso } from './body';
 import { hp, makeHeadView, projectWorld, withHead, type P2, type Palette, type RenderCtx } from './context';
 import { drawHeadGroup } from './head';
 import { drawEffects, type Trail } from './props';
@@ -52,7 +52,7 @@ export function drawCharacter(ctx: CanvasRenderingContext2D, app: Appearance, po
 
 function renderInto(ctx: CanvasRenderingContext2D, app: Appearance, pose: Pose, o: DrawOptions) {
   const P = resolveParts(app);
-  const dims = bodyDims(app.gender);
+  const dims = bodyDims(app.gender, app.style);
   const rig = solveRig(pose, dims, o.yaw);
   const head = makeHeadView(rig, dims, P.face.sx, P.face.sy);
   const pal: Palette = {
@@ -91,7 +91,9 @@ function renderInto(ctx: CanvasRenderingContext2D, app: Appearance, pose: Pose, 
     });
   }
   const ts = P.top.skirt;
-  if (ts) prims.push({ z: wz('pelvis') - 1.3, draw: () => drawSkirt(rc, 1.2, ts.len, ts.flare, pal.top, { trim: P.top.color2, embroidery: P.top.embroidery }) });
+  if (ts) prims.push({ z: wz('pelvis') - 1.3, draw: () => P.top.adventure
+    ? drawAdventureSkirt(rc,ts.len,ts.flare,pal.top,P.top.color2)
+    : drawSkirt(rc, 1.2, ts.len, ts.flare, pal.top, { trim: P.top.color2, embroidery: P.top.embroidery }) });
   prims.push({ z: wz('chest', [0, 8, 0]), draw: () => drawTorso(rc, P.top, P.bottom) });
   prims.push({ z: wz('chest', [0, 15, 0]) - 0.4, draw: () => drawNeck(rc) });
   if (P.top.cape) prims.push({ z: wz('chest', [0, 6, -7]) - 0.5, draw: () => drawCape(rc, P.top.cape!) });

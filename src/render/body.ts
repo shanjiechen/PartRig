@@ -121,6 +121,10 @@ function tDecal(rc: RenderCtx, T: Torso, a: number, h: number, draw: () => void)
   const q = T.p(a, h, 1.05);
   rc.ctx.save();
   rc.ctx.translate(q.x, q.y);
+  if (rc.app.style === 'aistory') {
+    const up = T.p(a, h + 1, 1.05);
+    rc.ctx.rotate(Math.atan2(up.y - q.y, up.x - q.x) + Math.PI / 2);
+  }
   rc.ctx.scale(Math.max(0.3, f), 1);
   draw();
   rc.ctx.restore();
@@ -216,6 +220,22 @@ export function drawTorso(rc: RenderCtx, top: TopDef, bottom: BottomDef) {
     ribbon(ctx, .8, 0, 10, top.sash!, .5);
   });
 
+  if (top.adventure) {
+    const leather = top.adventure.strap;
+    for (const offset of [0, Math.PI]) {
+      surfPoly(rc, T, [[offset-.95,16.4],[offset-.68,16.4],[offset+1.05,1.1],[offset+.78,1.1]], leather, ink(leather));
+      surfLine(rc, T, [[offset-.76,15.8],[offset+.08,9],[offset+.93,1.6]], rgba(shade(leather,.65),.4), .3);
+    }
+    band(rc,T,1.9,3.3,leather);
+    tDecal(rc,T,.08,2.65,()=> {
+      ctx.beginPath();ctx.roundRect(-1.3,-.8,2.6,1.6,.25);fs(ctx,'#c5ac6e','#615239',.4);
+      ctx.beginPath();ctx.rect(-.65,-.4,1.3,.8);fs(ctx,shade(leather,-.2),null);
+    });
+    for (const sign of [-1,1]) {
+      if (top.adventure.shoulder) surfPoly(rc,T,[[sign*.75,16.8],[sign*1.4,15],[sign*1.35,12.7],[sign*.84,13.9]], top.adventure.edge, ink(top.adventure.edge));
+      surfLine(rc,T,[[sign*.85,12],[sign*.75,7],[sign*.9,4]], rgba(ink(tc),.35),.3);
+    }
+  }
   const skin = pal.skin;
   switch (top.collar) {
     case 'round':
@@ -234,7 +254,7 @@ export function drawTorso(rc: RenderCtx, top: TopDef, bottom: BottomDef) {
       vStrip(rc, T, Math.PI - 1, Math.PI + 1, 12, 17.2, t2);
       break;
     case 'cross':
-      surfPoly(rc, T, [[-0.7, 17.8], [0.15, 11], [0.7, 17.8]], skin);
+      surfPoly(rc, T, [[-0.7, 17.8], [0.15, 11], [0.7, 17.8]], top.adventure ? t2 : skin);
       surfLine(rc, T, [[0.72, 17.6], [0.15, 11]], t2, 1.6);
       surfLine(rc, T, [[-0.72, 17.6], [0.55, 6.5]], t2, 1.6);
       break;
@@ -302,6 +322,13 @@ export function drawTorso(rc: RenderCtx, top: TopDef, bottom: BottomDef) {
   smoothPath(ctx, sil);
   fs(ctx, null, ink(tc), OL);
   ctx.restore();
+  if (top.adventure?.pouch) tDecal(rc,T,.98,1.4,()=> {
+    const leather=top.adventure!.strap;
+    ctx.beginPath();ctx.roundRect(-2,-1.7,4.5,4.3,.9);fs(ctx,materialFill(ctx,leather,0,0,3),ink(leather),.5);
+    ctx.beginPath();ctx.moveTo(-2,-1.25);ctx.quadraticCurveTo(.2,1,2.5,-1.25);fs(ctx,null,shade(leather,-.35),.5);
+    ctx.beginPath();ctx.moveTo(-1.5,.7);ctx.quadraticCurveTo(.2,1.4,1.95,.7);fs(ctx,null,rgba(shade(leather,.65),.5),.25);
+    circle(ctx,.25,.05,.3);fs(ctx,'#c9b075',null);
+  });
 }
 
 // ---------------- Skirts / cape / hood / neck ----------------
@@ -398,6 +425,25 @@ export function drawSkirt(
   ctx.restore();
 }
 
+/** Pointed coat panels over a pale underlayer, following the Aistory traveler silhouette. */
+export function drawAdventureSkirt(rc: RenderCtx, len: number, flare: number, color: string, trim: string) {
+  drawSkirt(rc,1.2,len*.83,flare*.97,trim);
+  const w=rc.dims.hipW+.6;
+  const point=(a:number,y:number,f:number)=>rc.bp('pelvis',[Math.sin(a)*w*f,y,Math.cos(a)*6*f]);
+  const panels=Array.from({length:8},(_,i)=> {
+    const a=i*TAU/8;
+    return {a,z:point(a,-len*.5,1.05).z};
+  }).sort((a,b)=>a.z-b.z);
+  for (const panel of panels) {
+    const a=panel.a;
+    polyPath(rc.ctx,[point(a-.39,1.25,1),point(a+.39,1.25,1),point(a+.48,-len*.69,flare),point(a+.03,-len*1.03,flare),point(a-.44,-len*.72,flare)]);
+    const p=point(a,-len*.5,1);
+    fs(rc.ctx,materialFill(rc.ctx,color,p.x,p.y,len,.8),ink(color),.5);
+    polyPath(rc.ctx,[point(a+.48,-len*.69,flare),point(a+.03,-len*1.03,flare),point(a-.44,-len*.72,flare)],false);
+    fs(rc.ctx,null,rgba(trim,.85),.45);
+  }
+}
+
 export function drawCape(rc: RenderCtx, color: string) {
   const { ctx } = rc;
   const sw = rc.dims.shoulderW;
@@ -465,6 +511,9 @@ export function drawArm(rc: RenderCtx, side: 'L' | 'R', top: TopDef, section: 'u
   drawLimb(ctx, section === 'upper'
     ? [{ a: s, b: e, w: 4.4, color: skin }]
     : [{ a: e, b: w, w: 4.0, color: skin }]);
+  if (top.adventure?.shoulder) drawLimb(ctx, section === 'upper'
+    ? [{ a: at(s,e,.55), b: e, w: 4.8, color: top.adventure.edge }]
+    : [{ a: e, b: at(e,w,.9), w: 4.7, color: top.adventure.edge }]);
   const segs: Seg[] = [];
   switch (top.sleeve) {
     case 'short':
@@ -513,6 +562,10 @@ export function drawArm(rc: RenderCtx, side: 'L' | 'R', top: TopDef, section: 'u
   }
   if (top.sleeve === 'long' && section === 'forearm') {
     drawLimb(ctx, [{ a: at(e, w, 0.72), b: at(e, w, 0.9), w: 5.1, color: top.armor ? top.color2 : shade(sc, -0.12) }]);
+  }
+  if (top.adventure && section === 'forearm' && top.sleeve!=='wide') {
+    drawLimb(ctx,[{a:at(e,w,.4),b:at(e,w,.8),w:4.3,color:top.adventure.strap}]);
+    drawLimb(ctx,[{a:at(e,w,.75),b:at(e,w,.82),w:4.5,color:shade(top.adventure.strap,.18)}]);
   }
   if (top.pauldron && section === 'upper') {
     ctx.beginPath();

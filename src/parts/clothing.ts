@@ -28,6 +28,7 @@ export interface TopDef {
   gloves?: string;
   embroidery?: Motif;
   sash?: string;
+  adventure?: { strap: string; pouch?: boolean; edge: string; shoulder?: boolean };
 }
 
 export const TOPS: TopDef[] = [

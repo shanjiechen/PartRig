@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.SPRITE_PLAYWRIGHT || 'playwright');
+const testedStyle = process.env.SPRITE_STYLE || 'guofeng';
+assert.ok(['guofeng', 'aistory'].includes(testedStyle));
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 1050 } });
 const errors = [];
@@ -12,7 +14,7 @@ page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('response', (r) => { if (r.status() >= 400) errors.push(`${r.status()} ${r.url()}`); });
 mkdirSync('.shots', { recursive: true });
 const appearance = () => page.evaluate(() => JSON.parse(localStorage.getItem('opus-sprite-appearance')));
-const screenshot = async (name) => { await page.waitForTimeout(180); await page.screenshot({ path: `.shots/${name}.png` }); };
+const screenshot = async (name) => { await page.waitForTimeout(180); await page.screenshot({ path: `.shots/${testedStyle}-${name}.png` }); };
 const downloadBytes = async (selector) => {
   const pending = page.waitForEvent('download'); await page.locator(selector).click();
   const download = await pending;
@@ -28,17 +30,19 @@ try {
   await page.locator('.item').nth(8).click();
   const original = await appearance();
   await screenshot('verified-chibi');
-  await page.locator('[data-style="guofeng"]').click();
-  assert.equal((await appearance()).style, 'guofeng');
+  assert.equal(await page.locator('#styles [data-style]').count(), 3);
+  await page.locator(`[data-style="${testedStyle}"]`).click();
+  assert.equal((await appearance()).style, testedStyle);
   await page.locator('[data-style="chibi"]').click();
   assert.deepEqual(await appearance(), original, '切换回来应恢复编辑结果');
-  await page.locator('[data-style="guofeng"]').click();
+  await page.locator(`[data-style="${testedStyle}"]`).click();
 
   let choices = 0;
+  const profiles = {};
   for (const gender of ['female', 'male']) {
     await page.locator(`[data-g="${gender}"]`).click();
     await page.locator('#reset').click();
-    await screenshot(`verified-guofeng-${gender}`);
+    await screenshot(`verified-${gender}`);
     const ids = await page.locator('[data-slot]').evaluateAll((els) => els.map((e) => e.dataset.slot));
     assert.equal(ids.length, 14);
     for (const slot of ids) {
@@ -52,11 +56,16 @@ try {
     }
     await page.locator('#random').click();
     assert.equal((await appearance()).gender, gender);
-    assert.equal((await appearance()).style, 'guofeng');
+    assert.equal((await appearance()).style, testedStyle);
+    profiles[gender] = await appearance();
   }
+  await page.locator('[data-g="female"]').click();
+  assert.deepEqual(await appearance(), profiles.female, '女性档案应独立保存');
+  await page.locator('[data-g="male"]').click();
+  assert.deepEqual(await appearance(), profiles.male, '男性档案应独立保存');
 
   // Exercise every authored part through the real Canvas renderer at all eight directions.
-  const renders = await page.evaluate(async () => {
+  const renders = await page.evaluate(async style => {
     const { defaultAppearance, slotsFor } = await import('/src/parts/index.ts');
     const { drawCharacter } = await import('/src/render/character.ts');
     const { clipById } = await import('/src/anim/clips.ts');
@@ -66,12 +75,12 @@ try {
     const cv = document.createElement('canvas'); cv.width = 192; cv.height = 192;
     const ctx = cv.getContext('2d'); let count = 0;
     for (const gender of ['female', 'male']) {
-      const noseImages = getCatalog('guofeng', gender).nose.map((nose) => {
+      const noseImages = getCatalog(style, gender).nose.map((nose) => {
         ctx.clearRect(0, 0, 192, 192); ctx.save(); ctx.translate(96, 96); ctx.scale(12, 12);
-        nose.draw(ctx, '#fddcc6'); ctx.restore(); return cv.toDataURL();
+        nose.draw?.(ctx, '#fddcc6'); ctx.restore(); return cv.toDataURL();
       });
       if (new Set(noseImages).size !== 12) throw new Error(`${gender}鼻型应有12种实际绘制差异`);
-      const base = defaultAppearance('guofeng', gender);
+      const base = defaultAppearance(style, gender);
       for (const slot of slotsFor(base)) for (const item of slot.items) {
         const app = { ...base, parts: { ...base.parts, [slot.id]: item.id } };
         for (const dir of DIRECTIONS) {
@@ -82,7 +91,7 @@ try {
       }
     }
     return count;
-  });
+  }, testedStyle);
   assert.equal(renders, choices * 8);
 
   await page.locator('#reset').click();
@@ -100,7 +109,7 @@ try {
   await screenshot('verified-death-eight');
 
   const png = await downloadBytes('#sheet');
-  assert.match(png.name, /guofeng_male_death_8dir_8f\.png/);
+  assert.equal(png.name, `${testedStyle}_male_death_8dir_8f.png`);
   assert.equal(png.bytes.readUInt32BE(16), 192 * 8);
   assert.equal(png.bytes.readUInt32BE(20), 192 * 8);
   const finalFrameMatches = await page.evaluate(async ({ png, app }) => {
@@ -136,7 +145,7 @@ try {
   const exported = await appearance();
   await page.locator('[data-style="chibi"]').click();
   await page.locator('#file').setInputFiles({ name: 'character.json', mimeType: 'application/json', buffer: json.bytes });
-  await page.waitForFunction(() => document.documentElement.dataset.style === 'guofeng');
+  await page.waitForFunction(style => document.documentElement.dataset.style === style, testedStyle);
   assert.deepEqual(await appearance(), exported, '配置导入应完整恢复');
   await page.reload();
   assert.deepEqual(await appearance(), exported, '刷新后应恢复当前风格');
@@ -147,5 +156,5 @@ try {
     if (width === 320) await screenshot('verified-mobile');
   }
   assert.deepEqual(errors, []);
-  console.log(JSON.stringify({ choices, renders, png: [1536, 1536], errors, passed: 'profiles, catalogs, death, replay, exports, import, reload, responsive' }));
+  console.log(JSON.stringify({ style: testedStyle, choices, renders, png: [1536, 1536], errors, passed: 'profiles, catalogs, death, replay, exports, import, reload, responsive' }));
 } finally { await browser.close(); }

@@ -22,6 +22,11 @@ export interface HairBun {
   at: Vec3;
   r: number;
 }
+/** A tapered hair lock: root, two outer controls, tip, two inner controls, second root. */
+export interface HairLock {
+  pts: [Vec3, Vec3, Vec3, Vec3, Vec3, Vec3, Vec3];
+  tone?: number;
+}
 export interface HairDef {
   id: string;
   name: string;
@@ -32,6 +37,29 @@ export interface HairDef {
   tubes?: HairTube[];
   buns?: HairBun[];
   ahoge?: boolean;
+  locks?: HairLock[];
+}
+
+export function drawHairLock(rc: RenderCtx, lock: HairLock, color: string) {
+  const { ctx, head } = rc;
+  const p = lock.pts.map(q => hp(head, q));
+  const fill = shade(color, lock.tone ?? 0);
+  ctx.beginPath(); ctx.moveTo(p[0].x, p[0].y);
+  ctx.bezierCurveTo(p[1].x, p[1].y, p[2].x, p[2].y, p[3].x, p[3].y);
+  ctx.bezierCurveTo(p[4].x, p[4].y, p[5].x, p[5].y, p[6].x, p[6].y);
+  ctx.closePath();
+  fs(ctx, materialFill(ctx, fill, p[0].x, p[0].y, head.R * 1.3, .55), null);
+  ctx.save(); ctx.clip();
+  const start = { x: lerp(p[0].x, p[6].x, .45), y: lerp(p[0].y, p[6].y, .45) };
+  ctx.beginPath(); ctx.moveTo(start.x, start.y + .7);
+  ctx.quadraticCurveTo(lerp(p[1].x, p[5].x, .48), lerp(p[1].y, p[5].y, .48), lerp(p[2].x, p[3].x, .7), lerp(p[2].y, p[3].y, .7));
+  fs(ctx, null, rgba(shade(color, .48), .32), .35);
+  ctx.restore();
+  // Leave the root open so overlapping locks blend into the crown instead of looking like separate plates.
+  ctx.beginPath(); ctx.moveTo(p[0].x, p[0].y);
+  ctx.bezierCurveTo(p[1].x, p[1].y, p[2].x, p[2].y, p[3].x, p[3].y);
+  ctx.bezierCurveTo(p[4].x, p[4].y, p[5].x, p[5].y, p[6].x, p[6].y);
+  fs(ctx, null, rgba(ink(fill), .65), .32);
 }
 
 const H = Math.PI / 2;
@@ -182,6 +210,7 @@ export const HAIRS: HairDef[] = [
 export interface CapOpts {
   topLine?: Line;
   shine?: boolean;
+  softShine?: boolean;
   pattern?: () => void;
   outline?: boolean;
 }
@@ -246,8 +275,9 @@ export function drawCap(rc: RenderCtx, line: Line, puff: number, color: string, 
   if (o.pattern) o.pattern();
   if (o.shine) {
     // Flowing locks follow the head surface, so profiles keep the same hairstyle as the front view.
-    for (let i = 0; i <= 10; i++) {
-      const a = -H + .12 + (Math.PI - .24) * i / 10 - h.yaw;
+    const strands = o.softShine ? 6 : 10;
+    for (let i = 0; i <= strands; i++) {
+      const a = -H + .12 + (Math.PI - .24) * i / strands - h.yaw;
       const end = hp(h, cyl(a, edge(wrapAngle(a)) - .015, 1 + puff));
       const root = hp(h, surf(a * .24, -.94, 1 + puff));
       const mid = hp(h, surf(a, -.5, 1 + puff));
@@ -258,11 +288,13 @@ export function drawCap(rc: RenderCtx, line: Line, puff: number, color: string, 
       ctx.quadraticCurveTo(mid.x * 1.15 + .65, mid.y - ry * .12, end.x + .45, end.y - .8);
       fs(ctx, null, rgba(shade(color, .48), .24), .22);
     }
-    const sheen = sample(a => -.51 + .055 * Math.sin(a * 2));
-    smoothPath(ctx, sheen.slice(9, 43), false);
-    fs(ctx, null, rgba(shade(color, .62), .18), ry * .12);
-    smoothPath(ctx, sheen.slice(13, 37), false);
-    fs(ctx, null, rgba(shade(color, .85), .4), .6);
+    if (!o.softShine) {
+      const sheen = sample(a => -.51 + .055 * Math.sin(a * 2));
+      smoothPath(ctx, sheen.slice(9, 43), false);
+      fs(ctx, null, rgba(shade(color, .62), .18), ry * .12);
+      smoothPath(ctx, sheen.slice(13, 37), false);
+      fs(ctx, null, rgba(shade(color, .85), .4), .6);
+    }
   }
   outline();
   ctx.strokeStyle = ink(color);
@@ -346,7 +378,7 @@ export function drawHairTube(rc: RenderCtx, t: HairTube, color: string) {
   }
   if (t.tie) {
     circle(ctx, pts[0].x, pts[0].y, widths[0] * 0.38);
-    const tie = rc.app.style === 'guofeng' ? '#cdb884' : '#e8505b';
+    const tie = rc.app.style === 'guofeng' ? '#cdb884' : rc.app.style === 'aistory' ? '#718458' : '#e8505b';
     fs(ctx, materialFill(ctx, tie, pts[0].x, pts[0].y, widths[0] * .45), ink(tie), .5);
   }
 }

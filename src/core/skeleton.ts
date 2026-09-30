@@ -1,5 +1,5 @@
 import { addV, euler, mulM, mulV, rotY, type Mat3, type Vec3 } from './math';
-import type { Gender } from './types';
+import type { Gender, StyleId } from './types';
 
 export const BONE_NAMES = [
   'root', 'pelvis', 'chest', 'head',
@@ -29,9 +29,15 @@ export interface BodyDims {
   bust: number;
 }
 
-export function bodyDims(gender: Gender): BodyDims {
+export function bodyDims(gender: Gender, style: StyleId = 'chibi'): BodyDims {
   const male = gender === 'male';
   const shoulderW = male ? 8.6 : 7.7;
+  if (style === 'aistory') return {
+    legLen: 22, thigh: 9.4, shin: 8.4, hipX: 4.2, torso: 17,
+    shoulderY: 13.2, shoulderX: male ? 8.3 : 7.8, upperArm: 7.6, foreArm: 6.8,
+    headR: 16, hipW: 8.6, waistW: male ? 7.8 : 6.6, chestW: male ? 9 : 9.1,
+    shoulderW: male ? 10 : 9.4, bust: male ? 0 : 2.9,
+  };
   return {
     legLen: 26,
     thigh: 11,
