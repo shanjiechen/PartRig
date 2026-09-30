@@ -23,6 +23,7 @@ export interface BodyDims {
   headR: number;
   hipW: number;
   waistW: number;
+  waistD: number;
   chestW: number;
   shoulderW: number;
   /** Clothed anterior chest volume, independent of the back and shoulder width. */
@@ -35,8 +36,8 @@ export function bodyDims(gender: Gender, style: StyleId = 'chibi'): BodyDims {
   if (style === 'aistory') return {
     legLen: 22, thigh: 9.4, shin: 8.4, hipX: 4.2, torso: 17,
     shoulderY: 13.2, shoulderX: male ? 8.3 : 7.8, upperArm: 7.6, foreArm: 6.8,
-    headR: 16, hipW: 8.6, waistW: male ? 7.8 : 6.6, chestW: male ? 9 : 9.1,
-    shoulderW: male ? 10 : 9.4, bust: male ? 0 : 2.9,
+    headR: 16, hipW: 8.6, waistW: male ? 7.8 : 5.2, waistD: male ? 4.9 : 4.1, chestW: male ? 9 : 9.8,
+    shoulderW: male ? 10 : 9.4, bust: male ? 0 : 5.0,
   };
   return {
     legLen: 26,
@@ -50,10 +51,11 @@ export function bodyDims(gender: Gender, style: StyleId = 'chibi'): BodyDims {
     foreArm: 7,
     headR: 19.5,
     hipW: male ? 7.0 : 7.5,
-    waistW: male ? 6.8 : 5.8,
-    chestW: male ? 7.6 : 8.3,
+    waistW: male ? 6.8 : 4.6,
+    waistD: male ? 4.9 : 4.0,
+    chestW: male ? 7.6 : 9.0,
     shoulderW,
-    bust: male ? 0 : 3.1,
+    bust: male ? 0 : 5.2,
   };
 }
 

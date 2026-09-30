@@ -21,6 +21,7 @@ try {
     const canvas = document.createElement('canvas'); canvas.width = canvas.height = 480;
     const ctx = canvas.getContext('2d');
     const failures = [];
+    let mouthBounds = 0;
     // Happy mouths must stay inside their own silhouette; a stroked tongue must not leave a separate circle below it.
     for (const [id, depth] of [['open', 3], ['laugh', 4.2]]) {
       ctx.clearRect(0, 0, 480, 480); ctx.save(); ctx.translate(240, 240); ctx.scale(16, 16);
@@ -28,6 +29,7 @@ try {
       const below = ctx.getImageData(160, Math.ceil(240 + (depth + .4) * 16), 160, 40).data;
       const stray = below.filter((alpha, i) => i % 4 === 3 && alpha > 32).length;
       if (stray) failures.push(`${id}: ${stray} stray pixels below the mouth`);
+      mouthBounds++;
     }
     let checked = 0;
     for (const style of ['chibi', 'guofeng', 'aistory']) for (const gender of ['male', 'female']) {
@@ -87,9 +89,9 @@ try {
       drawCharacter(ctx, defaultAppearance(style, gender), samplePose(clip, time), { x: 240, y: 425, scale: 4, yaw: dir.yaw, time, prop: clip.prop });
       animationFrames++;
     }
-    return { failures, checked, foregroundHands, animationFrames };
+    return { failures, mouthBounds, checked, foregroundHands, animationFrames };
   });
   assert.deepEqual(errors, []);
   assert.deepEqual(result.failures, [], result.failures.join('\n'));
-  console.log(`Passed ${result.checked} shoulder occlusion comparisons, ${result.foregroundHands} foreground hands and ${result.animationFrames} animation frames.`);
+  console.log(`Passed ${result.mouthBounds} mouth boundaries, ${result.checked} shoulder occlusion comparisons, ${result.foregroundHands} foreground hands and ${result.animationFrames} animation frames.`);
 } finally { await browser.close(); }

@@ -12,6 +12,9 @@ try {
     const { DIRECTIONS } = await import('/src/core/types.ts');
     const { CLIPS } = await import('/src/anim/clips.ts');
     const { samplePose } = await import('/src/core/animation.ts');
+    const { getCatalog } = await import('/src/parts/catalog.ts');
+    const { bodyDims, solveRig } = await import('/src/core/skeleton.ts');
+    const { makeHeadView } = await import('/src/render/context.ts');
     const profiles = styles.flatMap(style => ['female', 'male'].map(gender => defaultAppearance(style, gender)));
     const sheets = [];
     const hero = document.createElement('canvas'); hero.width = profiles.length*360; hero.height = 550;
@@ -22,6 +25,18 @@ try {
       drawCharacter(heroCtx, app, samplePose(CLIPS.find(c => c.id === 'idle'), .5), { x: index * 360 + 180, y: 505, scale: 5.6, yaw: -.18, time: .5 });
     });
     sheets.push({ name: 'hero', png: hero.toDataURL().split(',')[1] });
+    const portraits = document.createElement('canvas'); portraits.width = 13*130; portraits.height = profiles.length*180;
+    const portraitCtx = portraits.getContext('2d'); portraitCtx.fillStyle = '#f6f3f0'; portraitCtx.fillRect(0,0,portraits.width,portraits.height);
+    const pose = samplePose(CLIPS.find(c=>c.id==='idle'),.5);
+    profiles.forEach((base,row)=>getCatalog(base.style,base.gender).face.forEach((face,col)=> {
+      const x=col*130,y=row*180,app={...base,parts:{...base.parts,face:face.id,headwear:getCatalog(base.style,base.gender).headwear[0].id}};
+      const dims=bodyDims(app.gender,app.style), head=makeHeadView(solveRig(pose,dims,0),dims,face.sx,face.sy);
+      portraitCtx.save();portraitCtx.beginPath();portraitCtx.rect(x,y+18,130,132);portraitCtx.clip();
+      drawCharacter(portraitCtx,app,pose,{x:x+65,y:y+80-head.cy*2.5,scale:2.5,yaw:0,time:.5,shadow:false});portraitCtx.restore();
+      portraitCtx.fillStyle='#615969';portraitCtx.font='11px sans-serif';portraitCtx.fillText(`${app.style}/${app.gender}`,x+5,y+14);
+      portraitCtx.font='13px sans-serif';portraitCtx.fillText(face.name,x+15,y+169);
+    }));
+    sheets.push({name:'faces',png:portraits.toDataURL().split(',')[1]});
     for (const clipId of ['idle', 'wave', 'slash', 'death']) {
       const canvas = document.createElement('canvas');
       canvas.width = 1600; canvas.height = profiles.length*255;

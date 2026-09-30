@@ -17,7 +17,7 @@ export interface Torso {
 export function makeTorso(rc: RenderCtx): Torso {
   const d = rc.dims;
   const prof: number[][] = [
-    [-3.5, d.hipW * 0.9, 4.9], [-1.5, d.hipW, 5.3], [1, d.hipW * 0.97, 5.2], [4, d.waistW, 4.9],
+    [-3.5, d.hipW * 0.9, 4.9], [-1.5, d.hipW, 5.3], [1, d.hipW * 0.97, 5.2], [4, d.waistW, d.waistD],
     [8, d.chestW, 5.2], [12, d.chestW * 1.02, 5.2], [14.5, d.shoulderW, 5.0], [16.3, d.shoulderW * 0.72, 4.3], [17.6, 3.4, 3.0],
   ];
   const radii = (h: number): [number, number] => {
@@ -184,7 +184,7 @@ export function drawTorso(rc: RenderCtx, top: TopDef, bottom: BottomDef) {
       if (T.nz(a, 10) < .05) continue;
       const patch = Array.from({ length: 32 }, (_, i) => {
         const theta = i / 32 * TAU;
-        return T.p(a + Math.cos(theta) * .48, 10 + Math.sin(theta) * 2.6, 1.01);
+        return T.p(a + Math.cos(theta) * .52, 10 + Math.sin(theta) * 2.8, 1.01);
       });
       smoothPath(ctx, patch);
       const q = T.p(a, 10.4);

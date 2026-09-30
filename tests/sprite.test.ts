@@ -107,8 +107,8 @@ test('现有循环动画仍在周期结束后回到起点', () => {
 });
 
 test('女性胸部体积只改变上身前侧，侧面轮廓有体积且随胸骨旋转', () => {
-  for (const gender of ['male', 'female'] as const) for (const yaw of [0, Math.PI / 2, Math.PI]) {
-    const dims = bodyDims(gender);
+  for (const style of ['chibi', 'guofeng', 'aistory'] as const) for (const gender of ['male', 'female'] as const) for (const yaw of [0, Math.PI / 2, Math.PI]) {
+    const dims = bodyDims(gender, style);
     const rig = solveRig({ root: [0, 0, 0], bones: {}, fx: {} }, dims, yaw);
     const rc = { dims, rig, bp: (bone, local) => projectWorld(bonePoint(rig, bone, local)) } as RenderCtx;
     const torso = makeTorso(rc);
