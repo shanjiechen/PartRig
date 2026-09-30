@@ -2,14 +2,15 @@ import './style.css';
 import { CLIPS } from './anim/clips';
 import { blendPose, samplePose, type AnimationClip } from './core/animation';
 import type { Pose } from './core/skeleton';
-import { DIRECTIONS, SLOT_IDS, type Appearance, type SlotId, type TintSlot } from './core/types';
-import { defaultAppearance, randomAppearance, SLOTS, type Focus } from './parts/index';
+import { DIRECTIONS, type Appearance, type SlotId, type Gender, type StyleId } from './core/types';
+import { changeAppearance, defaultAppearance, randomAppearance, slotsFor, type Focus } from './parts/index';
+import { STYLES } from './parts/catalog';
+import { sanitizeAppearance as sanitize } from './core/appearance';
 import { CLOTH_TINTS, EYE_COLORS, HAIR_COLORS, SKIN_TONES, type Swatch } from './parts/palettes';
 import { drawCharacter } from './render/character';
 import { CAM_PITCH } from './render/context';
 
 const STORE_KEY = 'opus-sprite-appearance';
-const HEX = /^#[0-9a-f]{6}$/i;
 
 // ---------------- state ----------------
 
@@ -28,31 +29,9 @@ let blend = 1;
 let lastPose: Pose = samplePose(clip, 0);
 const idlePose = samplePose(CLIPS[0], 0.3);
 
-function sanitize(raw: unknown): Appearance | null {
-  if (!raw || typeof raw !== 'object') return null;
-  const r = raw as Record<string, unknown>;
-  const base = defaultAppearance();
-  const color = (v: unknown, d: string) => (typeof v === 'string' && HEX.test(v) ? v : d);
-  base.gender = r.gender === 'male' ? 'male' : 'female';
-  base.skin = color(r.skin, base.skin);
-  base.hairColor = color(r.hairColor, base.hairColor);
-  base.eyeColor = color(r.eyeColor, base.eyeColor);
-  const parts = (r.parts ?? {}) as Record<string, unknown>;
-  for (const s of SLOT_IDS) {
-    const v = parts[s];
-    const slot = SLOTS.find((x) => x.id === s)!;
-    if (typeof v === 'string' && slot.items.some((i) => i.id === v)) base.parts[s] = v;
-  }
-  const tints = (r.tints ?? {}) as Record<string, unknown>;
-  for (const k of ['top', 'bottom', 'shoes', 'headwear'] as TintSlot[]) {
-    if (typeof tints[k] === 'string' && HEX.test(tints[k] as string)) base.tints[k] = tints[k] as string;
-  }
-  return base;
-}
-
-function loadAppearance(): Appearance | null {
+function loadAppearance(key = STORE_KEY): Appearance | null {
   try {
-    const s = localStorage.getItem(STORE_KEY);
+    const s = localStorage.getItem(key);
     return s ? sanitize(JSON.parse(s)) : null;
   } catch {
     return null;
@@ -61,8 +40,17 @@ function loadAppearance(): Appearance | null {
 
 function setApp(next: Appearance) {
   app = next;
-  localStorage.setItem(STORE_KEY, JSON.stringify(app));
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(app));
+    localStorage.setItem(`${STORE_KEY}:${app.style}:${app.gender}`, JSON.stringify(app));
+  } catch { /* The editor still works when browser storage is unavailable. */ }
   renderPanel();
+}
+
+function switchProfile(style: StyleId, gender: Gender) {
+  try { localStorage.setItem(`${STORE_KEY}:${app.style}:${app.gender}`, JSON.stringify(app)); } catch {}
+  const stored = loadAppearance(`${STORE_KEY}:${style}:${gender}`);
+  setApp(stored?.style === style && stored.gender === gender ? stored : changeAppearance(app, style, gender));
 }
 
 // ---------------- layout ----------------
@@ -101,6 +89,8 @@ root.innerHTML = `
     <div class="hint">精灵图按行输出 8 个方向（下、左下、左、左上、上、右上、右、右下），按列输出动画帧。动作数据为关键帧 JSON 格式，后续可直接接入录制的骨骼动作。</div>
   </section>
   <section class="card">
+    <div class="row style-row"><span class="label">风格</span><div class="seg" id="styles"></div></div>
+    <p class="catalog-summary" id="catalogSummary" aria-live="polite"></p>
     <div class="row" style="margin-top:0">
       <span class="label">性别</span>
       <div class="seg" id="gender"><button data-g="female">女</button><button data-g="male">男</button></div>
@@ -129,7 +119,7 @@ $('dpad').innerHTML = PAD.flat()
   .map((id) => (id ? `<button data-dir="${id}" title="${DIRECTIONS.find((d) => d.id === id)!.name}">${ARROWS[id]}</button>` : `<button data-rot="1" title="自动旋转">⟳</button>`))
   .join('');
 $('anims').innerHTML = CLIPS.map((c) => `<button data-clip="${c.id}">${c.name}</button>`).join('');
-$('tabs').innerHTML = SLOTS.map((s) => `<button data-slot="${s.id}">${s.name}</button>`).join('');
+$('styles').innerHTML = STYLES.map((s) => `<button data-style="${s.id}">${s.name}</button>`).join('');
 
 function swatchHtml(list: Swatch[], current: string | undefined, withNone = false) {
   const none = withNone ? `<button class="swatch none ${current ? '' : 'active'}" data-c="" title="默认"></button>` : '';
@@ -174,19 +164,26 @@ function drawThumb(canvas: HTMLCanvasElement, variant: Appearance, focus: Focus,
 }
 
 function renderPanel() {
+  document.documentElement.dataset.style = app.style;
+  document.querySelectorAll<HTMLButtonElement>('#styles button').forEach((b) => {
+    b.classList.toggle('active', b.dataset.style === app.style);
+    b.setAttribute('aria-pressed', String(b.dataset.style === app.style));
+  });
   document.querySelectorAll<HTMLButtonElement>('#gender button').forEach((b) => b.classList.toggle('active', b.dataset.g === app.gender));
   $('skin').innerHTML = swatchHtml(SKIN_TONES, app.skin);
   $('hairc').innerHTML = swatchHtml(HAIR_COLORS, app.hairColor);
   $('eyec').innerHTML = swatchHtml(EYE_COLORS, app.eyeColor);
-  document.querySelectorAll<HTMLButtonElement>('#tabs button').forEach((b) => b.classList.toggle('active', b.dataset.slot === activeSlot));
-  const slot = SLOTS.find((s) => s.id === activeSlot)!;
+  const slots = slotsFor(app);
+  $('tabs').innerHTML = slots.map((s) => `<button data-slot="${s.id}" aria-pressed="${s.id === activeSlot}" class="${s.id === activeSlot ? 'active' : ''}">${s.name}</button>`).join('');
+  const slot = slots.find((s) => s.id === activeSlot)!;
+  $('catalogSummary').textContent = `${STYLES.find((s) => s.id === app.style)!.description} · ${app.gender === 'male' ? '男' : '女'}款${slot.name} ${slot.items.length} 种`;
   $('tintRow').style.display = slot.tint ? '' : 'none';
   if (slot.tint) $('tint').innerHTML = swatchHtml(CLOTH_TINTS, app.tints[slot.tint], true);
   const grid = $('grid');
   grid.innerHTML = slot.items
-    .map((it) => `<div class="item ${app.parts[slot.id] === it.id ? 'active' : ''}" data-item="${it.id}"><canvas></canvas>${it.name}</div>`)
+    .map((it) => `<button class="item ${app.parts[slot.id] === it.id ? 'active' : ''}" aria-pressed="${app.parts[slot.id] === it.id}" data-item="${it.id}"><canvas aria-hidden="true"></canvas>${it.name}</button>`)
     .join('');
-  grid.querySelectorAll<HTMLDivElement>('.item').forEach((el) => {
+  grid.querySelectorAll<HTMLButtonElement>('.item').forEach((el) => {
     const variant: Appearance = { ...app, parts: { ...app.parts, [slot.id]: el.dataset.item! } };
     if (slot.id === 'weapon' && el.dataset.item === 'auto') variant.parts.weapon = 'none';
     drawThumb(el.querySelector('canvas')!, variant, slot.focus, slot.id);
@@ -218,7 +215,8 @@ document.addEventListener('click', (e) => {
     activeSlot = d.slot as SlotId;
     renderPanel();
   } else if (d.item) setApp({ ...app, parts: { ...app.parts, [activeSlot]: d.item } });
-  else if (d.g) setApp({ ...app, gender: d.g === 'male' ? 'male' : 'female' });
+  else if (d.g) switchProfile(app.style, d.g === 'male' ? 'male' : 'female');
+  else if (d.style && STYLES.some((s) => s.id === d.style)) switchProfile(d.style as StyleId, app.gender);
   else if (d.c !== undefined) {
     const group = el.parentElement!.id;
     const c = d.c;
@@ -226,7 +224,7 @@ document.addEventListener('click', (e) => {
     else if (group === 'hairc') setApp({ ...app, hairColor: c });
     else if (group === 'eyec') setApp({ ...app, eyeColor: c });
     else if (group === 'tint') {
-      const slot = SLOTS.find((s) => s.id === activeSlot)!;
+      const slot = slotsFor(app).find((s) => s.id === activeSlot)!;
       const tints = { ...app.tints };
       if (c) tints[slot.tint!] = c;
       else delete tints[slot.tint!];
@@ -243,8 +241,8 @@ $('play').onclick = () => {
 };
 $('replay').onclick = () => setClip(clip);
 $<HTMLInputElement>('speed').oninput = (e) => (speed = +(e.target as HTMLInputElement).value);
-$('random').onclick = () => setApp(randomAppearance());
-$('reset').onclick = () => setApp(defaultAppearance());
+$('random').onclick = () => setApp(randomAppearance(app.style, app.gender));
+$('reset').onclick = () => setApp(defaultAppearance(app.style, app.gender));
 
 function download(blob: Blob, name: string) {
   const a = document.createElement('a');
@@ -254,7 +252,7 @@ function download(blob: Blob, name: string) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-$('export').onclick = () => download(new Blob([JSON.stringify(app, null, 2)], { type: 'application/json' }), 'character.json');
+$('export').onclick = () => download(new Blob([JSON.stringify(app, null, 2)], { type: 'application/json' }), `${app.style}_${app.gender}_character.json`);
 $('import').onclick = () => $<HTMLInputElement>('file').click();
 $<HTMLInputElement>('file').onchange = async (e) => {
   const f = (e.target as HTMLInputElement).files?.[0];
@@ -290,7 +288,7 @@ $('sheet').onclick = () => {
       });
     }
   });
-  cv.toBlob((b) => b && download(b, `${clip.id}_8dir_${frames}f.png`));
+  cv.toBlob((b) => b && download(b, `${app.style}_${app.gender}_${clip.id}_8dir_${frames}f.png`));
 };
 
 // ---------------- main loop ----------------

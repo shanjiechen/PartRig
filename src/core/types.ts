@@ -1,4 +1,5 @@
 export type Gender = 'male' | 'female';
+export type StyleId = 'chibi' | 'guofeng';
 
 export const SLOT_IDS = [
   'face', 'ears', 'brows', 'eyes', 'nose', 'mouth', 'beard', 'marks',
@@ -9,6 +10,7 @@ export type SlotId = (typeof SLOT_IDS)[number];
 export type TintSlot = 'top' | 'bottom' | 'shoes' | 'headwear';
 
 export interface Appearance {
+  style: StyleId;
   gender: Gender;
   skin: string;
   hairColor: string;

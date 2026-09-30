@@ -1,12 +1,12 @@
 import { bodyDims, bonePoint, solveRig, type BoneName, type Pose } from '../core/skeleton';
 import type { Vec3 } from '../core/math';
 import type { Appearance } from '../core/types';
-import { resolveParts } from '../parts/index';
+import { resolveParts, resolveWeapon } from '../parts/index';
 import { drawBackHair, drawHairTube } from '../parts/hair';
 import { drawArm, drawCape, drawHood, drawLeg, drawNeck, drawSkirt, drawTorso } from './body';
 import { hp, makeHeadView, projectWorld, withHead, type P2, type Palette, type RenderCtx } from './context';
 import { drawHeadGroup } from './head';
-import { drawEffects, WEAPONS, type Trail } from './props';
+import { drawEffects, type Trail } from './props';
 
 export interface DrawOptions {
   /** Canvas position of the ground point under the character (in current ctx units). */
@@ -65,7 +65,7 @@ function renderInto(ctx: CanvasRenderingContext2D, app: Appearance, pose: Pose, 
     headwear: app.tints.headwear ?? P.hat.color,
   };
   const weaponId = app.parts.weapon === 'auto' ? o.prop ?? 'none' : app.parts.weapon;
-  const weapon = WEAPONS.find((w) => w.id === weaponId && w.draw);
+  const weapon = resolveWeapon(app, o.prop);
   const rc: RenderCtx = {
     ctx, app, rig, dims, head, pal,
     yaw: o.yaw,
