@@ -17,9 +17,18 @@ try {
     const { solveRig, bodyDims, bonePoint } = await import('/src/core/skeleton.ts');
     const { makeHeadView, projectWorld } = await import('/src/render/context.ts');
     const { faceOutline } = await import('/src/parts/faces.ts');
+    const { MOUTHS } = await import('/src/parts/features.ts');
     const canvas = document.createElement('canvas'); canvas.width = canvas.height = 480;
     const ctx = canvas.getContext('2d');
     const failures = [];
+    // Happy mouths must stay inside their own silhouette; a stroked tongue must not leave a separate circle below it.
+    for (const [id, depth] of [['open', 3], ['laugh', 4.2]]) {
+      ctx.clearRect(0, 0, 480, 480); ctx.save(); ctx.translate(240, 240); ctx.scale(16, 16);
+      MOUTHS.find(m => m.id === id).draw(ctx, false); ctx.restore();
+      const below = ctx.getImageData(160, Math.ceil(240 + (depth + .4) * 16), 160, 40).data;
+      const stray = below.filter((alpha, i) => i % 4 === 3 && alpha > 32).length;
+      if (stray) failures.push(`${id}: ${stray} stray pixels below the mouth`);
+    }
     let checked = 0;
     for (const style of ['chibi', 'guofeng', 'aistory']) for (const gender of ['male', 'female']) {
       const app = defaultAppearance(style, gender);

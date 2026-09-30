@@ -397,11 +397,14 @@ const INSIDE = '#7a2330', TONGUE = '#ff8a9a';
 const line = (c: CanvasRenderingContext2D, lw = 0.75) => fs(c, null, LINE, lw);
 
 function openMouth(c: CanvasRenderingContext2D, w: number, top: number, depth: number) {
-  c.beginPath();
-  c.moveTo(-w, top);
-  c.quadraticCurveTo(0, top + 0.5, w, top);
-  c.bezierCurveTo(w * 0.9, depth, -w * 0.9, depth, -w, top);
-  c.closePath();
+  const outline = () => {
+    c.beginPath();
+    c.moveTo(-w, top);
+    c.quadraticCurveTo(0, top + 0.5, w, top);
+    c.bezierCurveTo(w * 0.9, depth, -w * 0.9, depth, -w, top);
+    c.closePath();
+  };
+  outline();
   c.fillStyle = INSIDE;
   c.fill();
   c.save();
@@ -411,6 +414,8 @@ function openMouth(c: CanvasRenderingContext2D, w: number, top: number, depth: n
   c.fillStyle = TONGUE;
   c.fill();
   c.restore();
+  // Canvas save/restore does not restore the current path: outline the mouth, not the tongue ellipse.
+  outline();
   c.strokeStyle = LINE;
   c.lineWidth = 0.7;
   c.stroke();
