@@ -14,8 +14,8 @@ try {
     const { DIRECTIONS } = await import('/src/core/types.ts');
     const { CLIPS } = await import('/src/anim/clips.ts');
     const { samplePose } = await import('/src/core/animation.ts');
-    const { solveRig, bodyDims } = await import('/src/core/skeleton.ts');
-    const { makeHeadView } = await import('/src/render/context.ts');
+    const { solveRig, bodyDims, bonePoint } = await import('/src/core/skeleton.ts');
+    const { makeHeadView, projectWorld } = await import('/src/render/context.ts');
     const { faceOutline } = await import('/src/parts/faces.ts');
     const canvas = document.createElement('canvas'); canvas.width = canvas.height = 480;
     const ctx = canvas.getContext('2d');
@@ -51,6 +51,24 @@ try {
         }
       } finally { Object.assign(parts.top, previous); }
     }
+    // Keep genuine foreground hand gestures visible while the shoulder remains behind the head.
+    const gesture = defaultAppearance('chibi', 'male'), gestureTop = resolveParts(gesture).top;
+    const originalGloves = gestureTop.gloves;
+    let foregroundHands = 0;
+    try {
+      const clip = CLIPS.find(c => c.id === 'wave'), time = clip.duration * .35, pose = samplePose(clip, time);
+      for (const dir of DIRECTIONS.filter(d => ['E', 'SE'].includes(d.id))) {
+        const rig = solveRig(pose, bodyDims('male'), dir.yaw);
+        const p = projectWorld(bonePoint(rig, 'handR', [0, -1.4, 0]));
+        const values = ['#ff0000', '#0000ff'].map(color => {
+          gestureTop.gloves = color; ctx.clearRect(0, 0, 480, 480);
+          drawCharacter(ctx, gesture, pose, { x: 240, y: 425, scale: 5, yaw: dir.yaw, time, effects: false });
+          return ctx.getImageData(Math.round(240 + p.x * 5), Math.round(425 + p.y * 5), 1, 1).data[0];
+        });
+        if (Math.abs(values[0] - values[1]) < 100) failures.push(`${dir.id}: foreground waving hand incorrectly hidden`);
+        foregroundHands++;
+      }
+    } finally { gestureTop.gloves = originalGloves; }
     // Exercise the full animation range, including fallen poses and front crossing hands/props.
     let animationFrames = 0;
     for (const style of ['chibi', 'guofeng']) for (const gender of ['male', 'female']) for (const clip of CLIPS) for (const dir of DIRECTIONS) for (let frame = 0; frame <= 8; frame++) {
@@ -59,9 +77,9 @@ try {
       drawCharacter(ctx, defaultAppearance(style, gender), samplePose(clip, time), { x: 240, y: 425, scale: 4, yaw: dir.yaw, time, prop: clip.prop });
       animationFrames++;
     }
-    return { failures, checked, animationFrames };
+    return { failures, checked, foregroundHands, animationFrames };
   });
   assert.deepEqual(errors, []);
   assert.deepEqual(result.failures, [], result.failures.join('\n'));
-  console.log(`Passed ${result.checked} shoulder occlusion comparisons and ${result.animationFrames} animation frames.`);
+  console.log(`Passed ${result.checked} shoulder occlusion comparisons, ${result.foregroundHands} foreground hands and ${result.animationFrames} animation frames.`);
 } finally { await browser.close(); }

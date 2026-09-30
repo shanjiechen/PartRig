@@ -1,10 +1,10 @@
-import { ink } from '../core/color';
+import { ink, shade } from '../core/color';
 import { addV, clamp, mulV, type Vec3 } from '../core/math';
 import type { BodyDims, BoneName, Rig } from '../core/skeleton';
 import type { Appearance } from '../core/types';
 
 export const CAM_PITCH = 0.22;
-export const OL = 0.85;
+export const OL = 0.62;
 const CP = Math.cos(CAM_PITCH), SP = Math.sin(CAM_PITCH);
 
 export interface P2 {
@@ -150,6 +150,17 @@ export function fs(ctx: CanvasRenderingContext2D, fill: string | CanvasGradient 
   }
 }
 
+/** Soft cel lighting shared by fabric, skin, and small accessories. Coordinates are in the current drawing frame. */
+export function materialFill(ctx: CanvasRenderingContext2D, color: string, x: number, y: number, radius: number, contrast = 1) {
+  const r = Math.max(.1, radius);
+  const g = ctx.createRadialGradient(x - r * .32, y - r * .4, r * .05, x, y, r * 1.25);
+  g.addColorStop(0, shade(color, .24 * contrast));
+  g.addColorStop(.42, shade(color, .06 * contrast));
+  g.addColorStop(.78, color);
+  g.addColorStop(1, shade(color, -.22 * contrast));
+  return g;
+}
+
 export function polyPath(ctx: CanvasRenderingContext2D, pts: XY[], close = true) {
   ctx.beginPath();
   pts.forEach((p, i) => (i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)));
@@ -219,7 +230,13 @@ export function drawLimb(ctx: CanvasRenderingContext2D, segs: Seg[]) {
     ctx.stroke();
   }
   for (const s of segs) {
-    ctx.strokeStyle = s.color;
+    const minX = Math.min(s.a.x, s.b.x), minY = Math.min(s.a.y, s.b.y);
+    const maxX = Math.max(s.a.x, s.b.x), maxY = Math.max(s.a.y, s.b.y);
+    const g = ctx.createLinearGradient(minX - s.w / 2, minY, maxX + s.w / 2, maxY + s.w / 3);
+    g.addColorStop(0, shade(s.color, .22));
+    g.addColorStop(.38, s.color);
+    g.addColorStop(1, shade(s.color, -.18));
+    ctx.strokeStyle = g;
     ctx.lineWidth = s.w;
     ctx.beginPath();
     ctx.moveTo(s.a.x, s.a.y);

@@ -1,11 +1,11 @@
-import { ink, shade } from '../core/color';
+import { ink, rgba, shade } from '../core/color';
 import type { FaceDef } from '../parts/faces';
 import { faceOutline } from '../parts/faces';
 import { drawBrow, drawEye, type BrowDef, type EyeDef, type MouthDef, MOUTHS, type NoseDef } from '../parts/features';
 import { drawBeardDetails, drawBeardRegion, drawEars, type BeardDef, type EarDef, type MarkDef } from '../parts/face-extras';
 import { drawAhoge, drawBun, drawCap, drawTuft, stubbleColor, type HairDef } from '../parts/hair';
 import type { HatDef } from '../parts/headwear';
-import { decal, fs, hp, OL, surf, withHead, type RenderCtx } from './context';
+import { decal, fs, hp, materialFill, OL, surf, withHead, type RenderCtx } from './context';
 
 export interface HeadParts {
   face: FaceDef;
@@ -20,7 +20,7 @@ export interface HeadParts {
   hat: HatDef;
 }
 
-const EYE_A = 0.37, EYE_V = 0.3, BROW_V = -0.03, NOSE_V = 0.5, MOUTH_V = 0.68;
+const EYE_A = 0.39, EYE_V = 0.26, BROW_V = -0.12, NOSE_V = 0.5, MOUTH_V = 0.7;
 const OPEN_MOUTHS = ['open', 'laugh', 'grin', 'o'];
 
 export function hairPuff(hair: HairDef) {
@@ -56,7 +56,7 @@ export function drawHeadGroup(rc: RenderCtx, P: HeadParts) {
 
     // ---- head base ----
     faceOutline(ctx, P.face, h);
-    fs(ctx, skin, ink(skin), OL);
+    fs(ctx, materialFill(ctx, skin, 0, 0, h.R * 1.1, .65), ink(skin), OL);
     drawEars(rc, P.ears, 'mid', !!hat.hideTopEars);
 
     // ---- face ----
@@ -67,8 +67,11 @@ export function drawHeadGroup(rc: RenderCtx, P: HeadParts) {
       for (const s of [1, -1]) {
         decal(rc, s * 0.6, 0.53, () => {
           ctx.beginPath();
-          ctx.ellipse(0, 0, 2.4, 1.25, 0, 0, Math.PI * 2);
-          ctx.fillStyle = 'rgba(255,120,140,0.28)';
+          ctx.ellipse(0, 0, 3.1, 1.65, 0, 0, Math.PI * 2);
+          const blush = ctx.createRadialGradient(0, 0, .1, 0, 0, 3.1);
+          blush.addColorStop(0, rgba('#ee8996', female ? .4 : .25));
+          blush.addColorStop(1, rgba('#ee8996', 0));
+          ctx.fillStyle = blush;
           ctx.fill();
         }, { min: 0.1 });
       }
@@ -76,6 +79,7 @@ export function drawHeadGroup(rc: RenderCtx, P: HeadParts) {
       drawBeardRegion(rc, P.beard, P.face, shade(hairC, -0.1));
       for (const s of [1, -1]) {
         decal(rc, s * EYE_A, EYE_V, () => drawEye(ctx, P.eyes, pal.eye, st), { mirror: s, pow: 0.6, min: 0.02, minScale: 0.25 });
+        decal(rc, s * EYE_A, BROW_V, () => drawBrow(ctx, P.brows, shade(hairC, -0.3), s, skin, shout), { mirror: s, pow: 0.6, min: 0.02 });
       }
       let mouth = P.mouth;
       if (st.hurt) mouth = MOUTHS.find((m) => m.id === 'o')!;
@@ -92,9 +96,6 @@ export function drawHeadGroup(rc: RenderCtx, P: HeadParts) {
     if (P.hair.under) drawCap(rc, P.hair.under, 0.02, stubbleColor(skin, hairC));
     if (P.hair.cap) drawCap(rc, P.hair.cap.line, P.hair.cap.puff, hairC, { shine: true });
     drawEars(rc, P.ears, 'over', !!hat.hideTopEars);
-    for (const s of [1, -1]) {
-      decal(rc, s * EYE_A, BROW_V, () => drawBrow(ctx, P.brows, shade(hairC, -0.3), s, skin, shout), { mirror: s, pow: 0.6, min: 0.02 });
-    }
     for (const t of tufts) if (t.round && tz(t.a, t.v) >= 0) drawTuft(rc, t, puff, hairC);
     for (const b of buns) if (!hideTufts && hp(h, b.at).z >= 0) drawBun(rc, b, hairC);
     if (P.hair.ahoge && !hideTufts) drawAhoge(rc, hairC);

@@ -1,7 +1,7 @@
 import type { Gender } from '../core/types';
 import type { Vec3 } from '../core/math';
 import { ink, shade } from '../core/color';
-import { circle, fs, hp, hull, polyPath, type RenderCtx } from '../render/context';
+import { circle, fs, hp, hull, materialFill, polyPath, type RenderCtx } from '../render/context';
 import type { HairDef, HairTube } from './hair';
 import { drawCap } from './hair';
 import type { HatDef, Phase } from './headwear';
@@ -18,10 +18,10 @@ export function guofengHair(gender: Gender): HairDef[] {
   const male = gender === 'male';
   const labels = names(male ? '少年束髻 玉冠高髻 侠客马尾 书生半束 道士顶髻 江湖披发 双鬓短发 将军束辫 云游低髻 仙君长发 武僧短发 飞扬剑髻' : '双环髻 飞仙髻 灵蛇髻 桃花双髻 云鬓半披 垂鬟双辫 流苏高髻 百合髻 双螺髻 望仙髻 侠女高尾 童子双髻');
   return labels.map((name, i) => {
-    const front = [-.14, -.3, -.09, -.05, -.25, -.01, .04, -.12, -.09, -.2, -.2, .04][i];
+    const front = [-.26, -.4, -.2, -.17, -.36, -.12, -.08, -.24, -.2, -.32, -.3, -.09][i];
     const cap: HairDef['cap'] = { puff: .07 + i % 3 * .025, line: (a) => {
       const x = Math.abs(a);
-      const edge = x < Math.PI / 2 ? front + (.48 - front) * Math.sin(x) : .55;
+      const edge = x < Math.PI / 2 ? front + (.54 - front) * Math.pow(Math.sin(x), 2.1) : .55;
       return edge + Math.sin(a * (i % 3 + 2)) * .025 + (i === 5 || i === 9 ? Math.sin(a) * .17 : 0);
     } };
     const h: HairDef = { id: gfId(gender, 'hair', i), name, cap };
@@ -83,7 +83,9 @@ function drawHeadwear(rc: RenderCtx, phase: Phase, male: boolean, i: number, c: 
   const shape = (qs: Vec3[], color: string) => {
     const pts = qs.map(point);
     if ((pts.reduce((z, p) => z + p.z, 0) >= 0) !== front) return;
-    polyPath(ctx, hull(pts)); fs(ctx, color, ink(color), .65);
+    const center = pts.reduce((q, p) => ({ x: q.x + p.x / pts.length, y: q.y + p.y / pts.length }), { x: 0, y: 0 });
+    const radius = Math.max(1, ...pts.map(p => Math.hypot(p.x - center.x, p.y - center.y)));
+    polyPath(ctx, hull(pts)); fs(ctx, materialFill(ctx, color, center.x, center.y, radius), ink(color), .55);
   };
   if (male && i === 6 || !male && i === 7) {
     const ring = Array.from({ length: 36 }, (_, j) => point([Math.sin(j * Math.PI / 18) * 1.5, .72, Math.cos(j * Math.PI / 18) * 1.5]));

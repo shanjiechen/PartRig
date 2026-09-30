@@ -17,6 +17,8 @@ npm run build
 
 死亡动作播放一次，完成后保持倒地；点击重播或播放可以再次播放。导出死亡精灵图会包含最终倒地帧。其余动作循环播放。PNG 按行排列八方向，按列排列动画帧，文件名包含风格、性别、动作和帧数。
 
+角色使用柔和明暗、细描边、虹膜纹理、发丝与衣料褶皱。女性上身有独立的前向胸部体积、收腰与服装下缘褶皱，跟随胸骨转动；男女背部体积保持独立。肩臂、前臂、手和武器分别排序，肩膀始终在头部后方。
+
 ## 部件与风格扩展
 
 - `src/parts/catalog.ts`：风格注册、男女目录；`getCatalog(style, gender)` 统一查找。
@@ -33,6 +35,10 @@ npm run build
 ```powershell
 $env:SPRITE_PLAYWRIGHT = '你的 Playwright 包绝对路径'
 node tests/browser.mjs
+node tests/render-regression.mjs
+node tests/visual-preview.mjs
 ```
 
 截图保存在被 Git 忽略的 `.shots/`，测试构建暂存在 `.test-build/`。初始代码快照为本地提交 `01da25d`。
+
+`render-regression.mjs` 对四种风格/性别组合的八方向进行 64 次袖子与头部的像素对比，确保待机肩膀不会覆盖脸；另遍历全部动作的 3,168 帧。`visual-preview.mjs` 生成待机、挥手、挥砍、倒地的接触表和角色大图，可用 `PREVIEW_PREFIX` 设置文件名前缀。本次精细化前的回滚点为 `d9a9778`。

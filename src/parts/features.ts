@@ -1,7 +1,7 @@
-import { ink, shade } from '../core/color';
+import { ink, rgba, shade } from '../core/color';
 import { circle, fs, heart, star } from '../render/context';
 
-const LINE = '#4a2228';
+const LINE = '#382632';
 
 // ---------------- Eyes ----------------
 
@@ -60,7 +60,7 @@ export interface ExprState {
 }
 
 export function drawEye(ctx: CanvasRenderingContext2D, d: EyeDef, color: string, st: ExprState) {
-  const w = d.w ?? 3.2, h = d.h ?? 4;
+  const w = (d.w ?? 3.2) * (st.female ? 1.16 : 1.1), h = (d.h ?? 4) * 1.08;
   let kind: string = d.kind;
   if (st.hurt) kind = 'hurt';
   else if (st.joy && kind === 'normal') kind = 'happy';
@@ -135,7 +135,11 @@ export function drawEye(ctx: CanvasRenderingContext2D, d: EyeDef, color: string,
     ctx.closePath();
   };
   path();
-  ctx.fillStyle = '#ffffff';
+  const sclera = ctx.createLinearGradient(0, -h, 0, h);
+  sclera.addColorStop(0, '#d9d5e9');
+  sclera.addColorStop(.42, '#fffafa');
+  sclera.addColorStop(1, '#fffdf6');
+  ctx.fillStyle = sclera;
   ctx.fill();
   ctx.save();
   ctx.clip();
@@ -149,6 +153,20 @@ export function drawEye(ctx: CanvasRenderingContext2D, d: EyeDef, color: string,
   ctx.beginPath();
   ctx.ellipse(cx, cy, ir, ih, 0, 0, Math.PI * 2);
   fs(ctx, g, shade(color, -0.55), 0.5);
+  // Fine iris spokes and the lower reflection give the eyes depth at both preview and export sizes.
+  ctx.save();
+  ctx.clip();
+  for (let i = 0; i < 18; i++) {
+    const a = Math.PI * 2 * i / 18;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a) * ir * .55, cy + Math.sin(a) * ih * .55);
+    ctx.lineTo(cx + Math.cos(a) * ir * .88, cy + Math.sin(a) * ih * .88);
+    fs(ctx, null, rgba(shade(color, i % 2 ? .55 : -.5), .35), .18);
+  }
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + ih * .12, ir * .8, ih * .73, 0, .15, Math.PI - .15);
+  fs(ctx, null, rgba(shade(color, .72), .65), .45);
+  ctx.restore();
   const pc = shade(color, -0.72);
   switch (d.pupil) {
     case 'round':
@@ -194,11 +212,11 @@ export function drawEye(ctx: CanvasRenderingContext2D, d: EyeDef, color: string,
   ctx.moveTo(c[0], c[1]);
   ctx.bezierCurveTo(c[2], c[3], c[4], c[5], c[6], c[7]);
   ctx.strokeStyle = LINE;
-  ctx.lineWidth = 1.5;
+  ctx.lineWidth = st.female ? 1.12 : 1.02;
   ctx.stroke();
   // lower lid
   path();
-  ctx.lineWidth = 0.45;
+  ctx.lineWidth = 0.32;
   ctx.stroke();
   if (st.female || d.lash) {
     ctx.beginPath();
@@ -206,7 +224,7 @@ export function drawEye(ctx: CanvasRenderingContext2D, d: EyeDef, color: string,
     ctx.lineTo(c[6] + w * 0.4, c[7] - h * 0.3);
     ctx.moveTo(c[6] - w * 0.2, c[7] - h * 0.5);
     ctx.lineTo(c[6] + w * 0.22, c[7] - h * 0.85);
-    ctx.lineWidth = 0.75;
+    ctx.lineWidth = 0.55;
     ctx.stroke();
   }
 }

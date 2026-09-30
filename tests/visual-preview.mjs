@@ -14,6 +14,14 @@ try {
     const { samplePose } = await import('/src/core/animation.ts');
     const profiles = ['chibi', 'guofeng'].flatMap(style => ['female', 'male'].map(gender => defaultAppearance(style, gender)));
     const sheets = [];
+    const hero = document.createElement('canvas'); hero.width = 1440; hero.height = 550;
+    const heroCtx = hero.getContext('2d'); heroCtx.fillStyle = '#f6f3f0'; heroCtx.fillRect(0, 0, 1440, 550);
+    profiles.forEach((app, index) => {
+      heroCtx.fillStyle = '#615969'; heroCtx.font = '18px sans-serif';
+      heroCtx.fillText(`${app.style} · ${app.gender}`, index * 360 + 80, 32);
+      drawCharacter(heroCtx, app, samplePose(CLIPS.find(c => c.id === 'idle'), .5), { x: index * 360 + 180, y: 505, scale: 5.6, yaw: -.18, time: .5 });
+    });
+    sheets.push({ name: 'hero', png: hero.toDataURL().split(',')[1] });
     for (const clipId of ['idle', 'wave', 'slash', 'death']) {
       const canvas = document.createElement('canvas');
       canvas.width = 1600; canvas.height = 1020;

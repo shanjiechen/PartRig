@@ -19,8 +19,8 @@ export function guofengFace(gender: Gender) {
   const brows: BrowDef[] = browNames.map((name, i) => ({ id: id('brows', i), name, kind: i === 9 && male ? 'cut' : 'shape',
     w: [3.2, 2.9, 3.1, 2.6, 3.5, 1.9, 3, 2.7, 2.8, 3.1, 3.3, 2.2][i],
     t: (male ? 1.15 : .58) * [1, 1.4, 1.1, .65, .8, 1, 1.3, .9, .6, 1, .65, 1.4][i],
-    arch: [.3, 0, .6, .45, .7, .1, .15, .4, .25, .3, 1.1, .5][i],
-    tilt: [.7, 0, .45, .1, .25, 0, 1, -.65, -.2, .6, 0, .2][i], taper: male ? .45 : .18 }));
+    arch: (male ? [.3, 0, .6, .45, .7, .1, .15, .4, .25, .3, 1.1, .5] : [.55, .65, .8, .45, .2, .75, .5, .65, .35, .5, .6, .4])[i],
+    tilt: (male ? [.7, 0, .45, .1, .25, 0, 1, -.65, -.2, .6, 0, .2] : [.04, 0, .16, -.1, .02, .15, .22, -.16, .3, -.45, .1, .2])[i], taper: male ? .45 : .18 }));
   const eyeNames = names(male ? '清朗圆眼 剑客锐眼 温润杏眼 少年星眸 书生细眼 灵狐竖瞳 笑意弯眼 睡意半眼 玄瞳墨眼 仙君宝瞳 桃花长眼 顽童豆眼' : '秋水杏眼 丹凤眼 桃花眼 星河圆眼 柳叶细眼 灵狐竖瞳 月牙笑眼 慵懒半眼 清澈鹿眼 琉璃宝眼 含情长眼 团子豆眼');
   const shapes: EyeDef['shape'][] = ['almond', 'sharp', 'droop', 'round', 'almond', 'almond', 'round', 'half', 'round', 'almond', 'droop', 'round'];
   const eyes: EyeDef[] = eyeNames.map((name, i) => ({ id: id('eyes', i), name, kind: i === 6 ? 'happy' : i === 11 ? 'dot' : 'normal', shape: shapes[i],

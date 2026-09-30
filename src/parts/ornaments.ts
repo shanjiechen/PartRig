@@ -1,4 +1,5 @@
-import { circle, fs, polyPath, star } from '../render/context';
+import { rgba, shade } from '../core/color';
+import { circle, fs, materialFill, polyPath, star } from '../render/context';
 
 export const MOTIFS = ['cloud', 'lotus', 'plum', 'bamboo', 'wave', 'coin', 'crane', 'flame', 'ruyi', 'scale', 'star', 'leaf'] as const;
 export type Motif = (typeof MOTIFS)[number];
@@ -51,5 +52,8 @@ export function ribbon(ctx: CanvasRenderingContext2D, x: number, y: number, len:
   ctx.quadraticCurveTo(x + bend * 2, y + len * 0.55, x + bend, y + len);
   ctx.lineTo(x + bend + 1.1, y + len - 1);
   ctx.quadraticCurveTo(x + bend * 2 + 1.5, y + len * 0.55, x + 0.7, y);
-  ctx.closePath(); fs(ctx, color, null);
+  ctx.closePath(); fs(ctx, materialFill(ctx, color, x, y, Math.max(2, len) * .65, .8), null);
+  ctx.beginPath(); ctx.moveTo(x + .2, y + .5);
+  ctx.quadraticCurveTo(x + bend * 2 + .5, y + len * .55, x + bend + .5, y + len - 1.5);
+  fs(ctx, null, rgba(shade(color, .65), .48), .25);
 }

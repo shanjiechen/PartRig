@@ -6,6 +6,9 @@ import { sanitizeAppearance } from '../src/core/appearance';
 import { defaultAppearance, randomAppearance, slotsFor, changeAppearance, resolveParts } from '../src/parts/index';
 import { STYLES, getCatalog } from '../src/parts/catalog';
 import { resolveWeapon } from '../src/parts/index';
+import { bodyDims, bonePoint, solveRig } from '../src/core/skeleton';
+import { makeTorso } from '../src/render/body';
+import { projectWorld, type RenderCtx } from '../src/render/context';
 
 test('国风男女每个部位至少12款，并且ID唯一，配置可以往返', () => {
   assert.ok(STYLES.some((s) => s.id === 'guofeng'));
@@ -79,4 +82,21 @@ test('现有循环动画仍在周期结束后回到起点', () => {
     assert.deepEqual(samplePose(clip, clip.duration), samplePose(clip, 0));
   }
   assert.equal(clipById('missing').id, 'idle');
+});
+
+test('女性胸部体积只改变上身前侧，侧面轮廓有体积且随胸骨旋转', () => {
+  for (const gender of ['male', 'female'] as const) for (const yaw of [0, Math.PI / 2, Math.PI]) {
+    const dims = bodyDims(gender);
+    const rig = solveRig({ root: [0, 0, 0], bones: {}, fx: {} }, dims, yaw);
+    const rc = { dims, rig, bp: (bone, local) => projectWorld(bonePoint(rig, bone, local)) } as RenderCtx;
+    const torso = makeTorso(rc);
+    const component = yaw === Math.PI / 2 ? 'x' : 'z';
+    const front = Math.abs(torso.p(0, 10)[component]);
+    const back = Math.abs(torso.p(Math.PI, 10)[component]);
+    if (gender === 'female') assert.ok(front > back + 1.5, '胸部应有真实前向体积，不能只画平面圆圈');
+    else assert.ok(Math.abs(front - back) < .01, '男性不应套用女性胸部形变');
+    const waistFront = Math.abs(torso.p(0, 3)[component]);
+    const waistBack = Math.abs(torso.p(Math.PI, 3)[component]);
+    assert.ok(Math.abs(waistFront - waistBack) < .15, '腰背应保持原有体积');
+  }
 });

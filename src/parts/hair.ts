@@ -1,6 +1,6 @@
-import { ink, mix, shade } from '../core/color';
+import { ink, mix, rgba, shade } from '../core/color';
 import { lerp, smooth, wrapAngle, type Vec3 } from '../core/math';
-import { circle, cyl, fs, hp, OL, smoothPath, surf, tubePath, type RenderCtx, type XY } from '../render/context';
+import { circle, cyl, fs, hp, materialFill, OL, smoothPath, surf, tubePath, type RenderCtx, type XY } from '../render/context';
 
 type Line = (a: number) => number;
 
@@ -199,7 +199,8 @@ export function drawCap(rc: RenderCtx, line: Line, puff: number, color: string, 
     }
     return pts;
   };
-  const low = sample(line);
+  const edge: Line = o.shine ? a => line(a) - .1 * Math.exp(-Math.pow(wrapAngle(a) / .95, 4)) : line;
+  const low = sample(edge);
   const high = o.topLine ? sample(o.topLine) : null;
   const region = () => {
     ctx.beginPath();
@@ -238,24 +239,34 @@ export function drawCap(rc: RenderCtx, line: Line, puff: number, color: string, 
   clip();
   ctx.clip();
   region();
-  ctx.fillStyle = color;
+  ctx.fillStyle = o.shine ? materialFill(ctx, color, 0, oy, rx * 1.03, .9) : color;
   ctx.fill();
   ctx.save();
   ctx.clip();
   if (o.pattern) o.pattern();
   if (o.shine) {
-    ctx.beginPath();
-    ctx.ellipse(-rx * 0.12, oy - ry * 0.35, rx * 0.62, ry * 0.3, -0.15, Math.PI * 1.05, Math.PI * 1.75);
-    ctx.strokeStyle = 'rgba(255,255,255,0.45)';
-    ctx.lineWidth = ry * 0.09;
-    ctx.lineCap = 'round';
-    ctx.setLineDash([ry * 0.18, ry * 0.08]);
-    ctx.stroke();
-    ctx.setLineDash([]);
+    // Flowing locks follow the head surface, so profiles keep the same hairstyle as the front view.
+    for (let i = 0; i <= 10; i++) {
+      const a = -H + .12 + (Math.PI - .24) * i / 10 - h.yaw;
+      const end = hp(h, cyl(a, edge(wrapAngle(a)) - .015, 1 + puff));
+      const root = hp(h, surf(a * .24, -.94, 1 + puff));
+      const mid = hp(h, surf(a, -.5, 1 + puff));
+      ctx.beginPath(); ctx.moveTo(root.x, root.y);
+      ctx.quadraticCurveTo(mid.x * 1.15, mid.y - ry * .12, end.x, end.y);
+      fs(ctx, null, rgba(ink(color), .25), .28);
+      ctx.beginPath(); ctx.moveTo(root.x + .55, root.y);
+      ctx.quadraticCurveTo(mid.x * 1.15 + .65, mid.y - ry * .12, end.x + .45, end.y - .8);
+      fs(ctx, null, rgba(shade(color, .48), .24), .22);
+    }
+    const sheen = sample(a => -.51 + .055 * Math.sin(a * 2));
+    smoothPath(ctx, sheen.slice(9, 43), false);
+    fs(ctx, null, rgba(shade(color, .62), .18), ry * .12);
+    smoothPath(ctx, sheen.slice(13, 37), false);
+    fs(ctx, null, rgba(shade(color, .85), .4), .6);
   }
   outline();
   ctx.strokeStyle = ink(color);
-  ctx.lineWidth = OL * 2;
+  ctx.lineWidth = OL * 1.5;
   ctx.stroke();
   ctx.restore();
   ctx.beginPath();
@@ -278,7 +289,7 @@ export function drawTuft(rc: RenderCtx, t: Tuft, puff: number, color: string) {
   const w = t.w * h.R * 0.5;
   if (t.round) {
     circle(ctx, (base.x + tip.x) / 2, (base.y + tip.y) / 2, w);
-    fs(ctx, color, ink(color), OL);
+    fs(ctx, materialFill(ctx, color, (base.x + tip.x) / 2, (base.y + tip.y) / 2, w), ink(color), OL);
     return;
   }
   const dx = tip.x - base.x, dy = tip.y - base.y;
@@ -289,7 +300,7 @@ export function drawTuft(rc: RenderCtx, t: Tuft, puff: number, color: string) {
   ctx.moveTo(base.x + nx * w, base.y + ny * w);
   ctx.quadraticCurveTo(base.x + dx * 0.55 + nx * w * 0.35, base.y + dy * 0.55 + ny * w * 0.35, tip.x, tip.y);
   ctx.quadraticCurveTo(base.x + dx * 0.5 - nx * w * 0.2, base.y + dy * 0.5 - ny * w * 0.2, base.x - nx * w, base.y - ny * w);
-  ctx.fillStyle = color;
+  ctx.fillStyle = materialFill(ctx, color, base.x, base.y, Math.max(w, len));
   ctx.fill();
   ctx.strokeStyle = ink(color);
   ctx.lineWidth = OL;
@@ -302,7 +313,15 @@ export function drawHairTube(rc: RenderCtx, t: HairTube, color: string) {
   const pts = t.pts.map((q) => hp(h, q));
   const widths = t.w.map((w) => w * h.R);
   tubePath(ctx, pts, widths);
-  fs(ctx, color, ink(color), OL);
+  fs(ctx, materialFill(ctx, color, pts[0].x, pts[0].y, Math.max(1, ...widths) * 2.6, .8), ink(color), OL);
+  ctx.save();
+  tubePath(ctx, pts, widths); ctx.clip();
+  for (const offset of [-.2, .16]) {
+    const strand = pts.map((p, i) => ({ x: p.x + widths[i] * offset, y: p.y - .3 }));
+    smoothPath(ctx, strand, false);
+    fs(ctx, null, rgba(offset < 0 ? shade(color, .65) : ink(color), .34), offset < 0 ? .65 : .35);
+  }
+  ctx.restore();
   if (t.braid) {
     ctx.save();
     tubePath(ctx, pts, widths);
@@ -327,7 +346,8 @@ export function drawHairTube(rc: RenderCtx, t: HairTube, color: string) {
   }
   if (t.tie) {
     circle(ctx, pts[0].x, pts[0].y, widths[0] * 0.38);
-    fs(ctx, '#e8505b', '#7a1f2a', 0.6);
+    const tie = rc.app.style === 'guofeng' ? '#cdb884' : '#e8505b';
+    fs(ctx, materialFill(ctx, tie, pts[0].x, pts[0].y, widths[0] * .45), ink(tie), .5);
   }
 }
 
@@ -336,7 +356,7 @@ export function drawBun(rc: RenderCtx, b: HairBun, color: string) {
   const p = hp(h, b.at);
   const r = b.r * h.R * h.sx;
   circle(ctx, p.x, p.y, r);
-  fs(ctx, color, ink(color), OL);
+  fs(ctx, materialFill(ctx, color, p.x, p.y, r), ink(color), OL);
   ctx.beginPath();
   ctx.arc(p.x, p.y, r * 0.6, -2.4, 0.2);
   ctx.arc(p.x + r * 0.1, p.y + r * 0.05, r * 0.3, 0.2, 3);
@@ -389,7 +409,7 @@ export function drawBackHair(rc: RenderCtx, d: HairDef, color: string) {
   const outline = [...left, ...bottom, ...[...right].reverse()];
   const fill = shade(color, -0.1);
   smoothPath(ctx, outline, true);
-  ctx.fillStyle = fill;
+  ctx.fillStyle = materialFill(ctx, fill, (left[2].x + right[2].x) / 2, left[2].y, h.R * 2, .85);
   ctx.fill();
   smoothPath(ctx, outline.slice(1, -1), false);
   fs(ctx, null, ink(color), OL);

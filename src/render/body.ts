@@ -3,7 +3,7 @@ import { clamp, lerp, mulV, TAU, type Vec3 } from '../core/math';
 import type { BoneName } from '../core/skeleton';
 import type { BottomDef, ShoeDef, TopDef } from '../parts/clothing';
 import { drawMotif, ribbon, type Motif } from '../parts/ornaments';
-import { circle, drawLimb, fs, heart, hull, OL, polyPath, projectWorld, smoothPath, star, type P2, type RenderCtx, type Seg, type XY } from './context';
+import { circle, drawLimb, fs, heart, hull, materialFill, OL, polyPath, projectWorld, smoothPath, star, type P2, type RenderCtx, type Seg, type XY } from './context';
 
 // ---------------- Torso geometry ----------------
 
@@ -35,7 +35,14 @@ export function makeTorso(rc: RenderCtx): Torso {
   const p = (a: number, h: number, out = 1) => {
     const [W, D] = radii(h);
     const [b, y] = frame(h);
-    return rc.bp(b, [Math.sin(a) * W * out, y, Math.cos(a) * D * out]);
+    let depth = Math.cos(a) * D;
+    if (d.bust > 0) {
+      const angle = Math.atan2(Math.sin(a), Math.cos(a));
+      const vertical = Math.exp(-Math.pow((h - 10) / 3.1, 2));
+      const lobes = .66 * (Math.exp(-Math.pow((angle - .46) / .55, 2)) + Math.exp(-Math.pow((angle + .46) / .55, 2)));
+      depth += d.bust * vertical * lobes * Math.max(0, Math.cos(a));
+    }
+    return rc.bp(b, [Math.sin(a) * W * out, y, depth * out]);
   };
   const nz = (a: number, h: number) => mulV(rc.rig[frame(h)[0]].rot, [Math.sin(a), 0, Math.cos(a)])[2];
   const frontArc = (h: number, out = 1) => {
@@ -125,7 +132,8 @@ export function drawTorso(rc: RenderCtx, top: TopDef, bottom: BottomDef) {
   const sil = T.silhouette();
   const tc = pal.top, t2 = top.color2;
   smoothPath(ctx, sil);
-  ctx.fillStyle = pal.bottom;
+  const center = T.p(0, 8);
+  ctx.fillStyle = materialFill(ctx, pal.bottom, center.x, center.y, 15, .8);
   ctx.fill();
   ctx.save();
   smoothPath(ctx, sil);
@@ -141,7 +149,7 @@ export function drawTorso(rc: RenderCtx, top: TopDef, bottom: BottomDef) {
     : null;
   if (reg) {
     polyPath(ctx, reg);
-    ctx.fillStyle = tc;
+    ctx.fillStyle = materialFill(ctx, tc, center.x, center.y, 15, .85);
     ctx.fill();
     polyPath(ctx, hem, false);
     fs(ctx, null, ink(tc), OL);
@@ -160,6 +168,34 @@ export function drawTorso(rc: RenderCtx, top: TopDef, bottom: BottomDef) {
   if (top.zipper) surfLine(rc, T, [[0, top.hem], [0, 17]], shade(tc, -0.4), 0.5);
   if (top.embroidery) {
     for (const a of [-.55, .55, Math.PI]) tDecal(rc, T, a, 8.6, () => drawMotif(ctx, top.embroidery!, 0, 0, 1.8, t2));
+  }
+
+  // Cloth falls over the chest, then gathers at the waist. Every mark is projected from the torso surface.
+  for (const a of [-1.12, 1.12, Math.PI - .7, Math.PI + .7]) {
+    surfLine(rc, T, [[a, 13], [a * .88, 8], [a * .93, 4]], rgba(ink(tc), .22), .34);
+    surfLine(rc, T, [[a + .04, 12], [a * .88 + .04, 8], [a * .93 + .04, 4]], rgba(shade(tc, .65), .38), .3);
+  }
+  if (rc.dims.bust > 0) {
+    for (const a of [-.48, .48]) {
+      if (T.nz(a, 10) < .05) continue;
+      const patch = Array.from({ length: 32 }, (_, i) => {
+        const theta = i / 32 * TAU;
+        return T.p(a + Math.cos(theta) * .48, 10 + Math.sin(theta) * 2.6, 1.01);
+      });
+      smoothPath(ctx, patch);
+      const q = T.p(a, 10.4);
+      const g = ctx.createRadialGradient(q.x - .55, q.y - .6, .1, q.x, q.y, 4.4);
+      g.addColorStop(0, rgba(shade(tc, .6), top.armor ? .23 : .3));
+      g.addColorStop(.5, rgba(shade(tc, .3), .1));
+      g.addColorStop(1, rgba(ink(tc), .2));
+      fs(ctx, g, null);
+      const fold = Array.from({ length: 13 }, (_, i) => {
+        const u = i / 12 * 2 - 1;
+        return [a + u * .38, 7.7 + u * u * 1.05] as [number, number];
+      });
+      surfLine(rc, T, fold, rgba(ink(tc), .42), .42);
+      surfLine(rc, T, fold.map(([angle, height]) => [angle, height - .15]), rgba(shade(tc, .7), .45), .22);
+    }
   }
   if (top.pocket) surfPoly(rc, T, [[-0.62, 0], [-0.45, 5.2], [0.45, 5.2], [0.62, 0]], shade(tc, -0.06));
   if (bottom.straps) {
@@ -303,10 +339,11 @@ export function drawSkirt(
       botFront.sort((x, y) => x.p.x - y.p.x);
       const hl = hull([...top, ...bot]);
       polyPath(ctx, hl);
-      fs(ctx, c, ink(c), OL);
+      fs(ctx, materialFill(ctx, c, top[0].x, top[0].y, 18, .8), ink(c), OL);
     } else {
       polyPath(ctx, shape);
-      fs(ctx, c, ink(color), OL);
+      const center = rc.bp('pelvis', [0, y0 - len * .4, 0]);
+      fs(ctx, materialFill(ctx, c, center.x, center.y, Math.max(len, rc.dims.hipW * flare) * 1.4, .85), ink(color), OL);
     }
     ctx.restore();
   });
@@ -314,6 +351,16 @@ export function drawSkirt(
   ctx.save();
   polyPath(ctx, shape);
   ctx.clip();
+  // Alternating lit and shaded gores preserve the skirt's volume as it turns.
+  for (let i = 0; i < n; i += 2) {
+    const a = (i / n) * TAU;
+    if (mulV(pel.rot, [Math.sin(a), 0, Math.cos(a)])[2] < .05) continue;
+    const next = (i + 1) % n, previous = (i + n - 1) % n;
+    polyPath(ctx, [top[i], bot[i], bot[next], top[next]]);
+    fs(ctx, rgba(ink(color), .1), null);
+    polyPath(ctx, [top[i], bot[i], bot[previous], top[previous]]);
+    fs(ctx, rgba(shade(color, .65), .17), null);
+  }
   if (o.plaid) {
     ctx.strokeStyle = rgba(o.plaid, 0.7);
     ctx.lineWidth = 1.2;
@@ -409,7 +456,10 @@ export function drawArm(rc: RenderCtx, side: 'L' | 'R', top: TopDef, section: 'u
   if (section === 'hand') {
     circle(ctx, hc.x, hc.y, 2.5);
     const hand = top.gloves ?? skin;
-    fs(ctx, hand, ink(hand), OL);
+    fs(ctx, materialFill(ctx, hand, hc.x, hc.y, 2.8, .7), ink(hand), OL);
+    ctx.beginPath();
+    ctx.arc(hc.x + .4, hc.y + .25, 1.4, .2, 1.45);
+    fs(ctx, null, rgba(ink(hand), .28), .3);
     return;
   }
   drawLimb(ctx, section === 'upper'
@@ -433,7 +483,7 @@ export function drawArm(rc: RenderCtx, side: 'L' | 'R', top: TopDef, section: 'u
   if (segs.length) drawLimb(ctx, segs);
   if (top.sleeve === 'puff' && section === 'upper') {
     circle(ctx, lerp(s.x, e.x, 0.3), lerp(s.y, e.y, 0.3), 3.6);
-    fs(ctx, sc, ink(sc), OL);
+    fs(ctx, materialFill(ctx, sc, lerp(s.x, e.x, .3), lerp(s.y, e.y, .3), 3.6), ink(sc), OL);
   }
   if (top.sleeve === 'wide' && section === 'forearm') {
     let dx = w.x - e.x, dy = w.y - e.y;
@@ -448,7 +498,14 @@ export function drawArm(rc: RenderCtx, side: 'L' | 'R', top: TopDef, section: 'u
       { x: end.x - nx * 4.6, y: end.y - ny * 4.6 },
       { x: e.x - nx * 2.8, y: e.y - ny * 2.8 },
     ]);
-    fs(ctx, sc, ink(sc), OL);
+    fs(ctx, materialFill(ctx, sc, e.x, e.y, Math.max(6, Math.hypot(w.x - e.x, w.y - e.y))), ink(sc), OL);
+    const fold = at(e, end, .8);
+    ctx.beginPath(); ctx.moveTo(e.x, e.y);
+    ctx.quadraticCurveTo(fold.x + nx * 1.5, fold.y + ny * 1.5, end.x + nx * 2.7, end.y + ny * 2.7);
+    fs(ctx, null, rgba(ink(sc), .3), .4);
+    ctx.beginPath(); ctx.moveTo(e.x - nx, e.y - ny);
+    ctx.quadraticCurveTo(fold.x - nx * 2, fold.y - ny * 2, end.x - nx * 3, end.y - ny * 3);
+    fs(ctx, null, rgba(shade(sc, .7), .5), .45);
     ctx.beginPath();
     ctx.moveTo(end.x + nx * 4.4, end.y + ny * 4.4);
     ctx.lineTo(end.x - nx * 4.4, end.y - ny * 4.4);
@@ -460,7 +517,7 @@ export function drawArm(rc: RenderCtx, side: 'L' | 'R', top: TopDef, section: 'u
   if (top.pauldron && section === 'upper') {
     ctx.beginPath();
     ctx.ellipse(s.x, s.y - 0.4, 4, 3.4, 0, 0, TAU);
-    fs(ctx, top.pauldron, ink(top.pauldron), OL);
+    fs(ctx, materialFill(ctx, top.pauldron, s.x, s.y - .4, 4.5), ink(top.pauldron), OL);
     ctx.beginPath();
     ctx.arc(s.x - 0.8, s.y - 1.3, 2, 3.6, 5.2);
     fs(ctx, null, 'rgba(255,255,255,0.7)', 0.7);
@@ -543,6 +600,14 @@ function drawShoe(rc: RenderCtx, side: 'L' | 'R', s: ShoeDef, ankle: P2, knee: P
   drawLimb(ctx, [{ a: fp([0, -3.5, -1.3]), b: fp([0, -3.7, 3.6]), w: 2.4 * wide, color: s.sole }]);
   if (s.heel) drawLimb(ctx, [{ a: fp([0, -3.2, -1.3]), b: fp([0, -5.0, -1.1]), w: 1.8, color: s.sole }]);
   drawLimb(ctx, [{ a: fp([0, -2.3, -1.3]), b: fp([0, -2.5, s.toe === 'point' ? 4.2 : 3.4]), w: 5.2 * wide, color: s.color }]);
+  if (mulV(rc.rig[foot].rot, [0, 0, 1])[2] > -.2) {
+    const toe = [-1.7, -.9, 0, .9, 1.7].map(x => fp([x * wide, -1.15 - Math.abs(x) * .22, 2.5]));
+    smoothPath(ctx, toe, false);
+    fs(ctx, null, rgba(shade(s.color, .68), .48), .34);
+    const seam = [-1.7, -.9, 0, .9, 1.7].map(x => fp([x * wide, -2.8 - Math.abs(x) * .12, 3.25]));
+    smoothPath(ctx, seam, false);
+    fs(ctx, null, rgba(ink(s.color), .42), .27);
+  }
   if (s.toe === 'curl') {
     const a = fp([0, -2.4, 3.6]), b = fp([0, -0.6, 6.4]), c = fp([0, 0.6, 5.2]);
     drawLimb(ctx, [{ a, b, w: 2.2, color: s.color }, { a: b, b: c, w: 1.2, color: s.color }]);

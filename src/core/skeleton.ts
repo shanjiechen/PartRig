@@ -25,6 +25,8 @@ export interface BodyDims {
   waistW: number;
   chestW: number;
   shoulderW: number;
+  /** Clothed anterior chest volume, independent of the back and shoulder width. */
+  bust: number;
 }
 
 export function bodyDims(gender: Gender): BodyDims {
@@ -42,9 +44,10 @@ export function bodyDims(gender: Gender): BodyDims {
     foreArm: 7,
     headR: 19.5,
     hipW: male ? 7.0 : 7.5,
-    waistW: male ? 6.8 : 6.3,
-    chestW: male ? 7.6 : 7.2,
+    waistW: male ? 6.8 : 5.8,
+    chestW: male ? 7.6 : 8.3,
     shoulderW,
+    bust: male ? 0 : 3.1,
   };
 }
 
