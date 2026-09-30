@@ -98,7 +98,7 @@ function renderInto(ctx: CanvasRenderingContext2D, app: Appearance, pose: Pose, 
   if (P.top.collar === 'hood') prims.push({ z: wz('chest', [0, 16, -5]), draw: () => drawHood(rc, pal.top) });
   const HEAD_Z = head.z + 5;
   const headR = head.R * Math.max(head.sx, head.sy) * 1.05;
-  /** Decide arm order vs. the big head by testing key points against the head sphere's front surface. */
+  /** Forearms, hands and held objects are independently tested against the head's front surface. */
   const vsHead = (pts: P2[], z: number) => {
     let front = 0, back = 0;
     for (const p of pts) {
@@ -112,12 +112,20 @@ function renderInto(ctx: CanvasRenderingContext2D, app: Appearance, pose: Pose, 
     return z;
   };
   for (const s of ['L', 'R'] as const) {
-    const z = Math.max(wz(`foreArm${s}`), wz(`hand${s}`), wz(`hand${s}`, [0, -2, 0])) + 0.6;
+    const elbow = projectWorld(rig[`foreArm${s}`].pos);
+    const wrist = projectWorld(rig[`hand${s}`].pos);
+    const hand = rc.bp(`hand${s}`, [0, -1.4, 0]);
+    // The shoulder attaches below the skull. Its silhouette must remain behind the head in every view.
+    const shoulderZ = Math.min((wz(`upperArm${s}`) + elbow.z) / 2 + .2, HEAD_Z - .2);
+    prims.push({ z: shoulderZ, draw: () => drawArm(rc, s, P.top, 'upper') });
+    prims.push({ z: vsHead([elbow, wrist], (elbow.z + wrist.z) / 2 + .4), draw: () => drawArm(rc, s, P.top, 'forearm') });
     const held = weapon && weapon.hand === s ? weapon : undefined;
-    const keyPts = [projectWorld(rig[`foreArm${s}`].pos), rc.bp(`hand${s}`, [0, -1.4, 0])];
-    if (held?.tip) keyPts.push(rc.bp(`hand${s}`, held.tip));
-    const wdraw = held ? () => held.draw!(rc, (v) => rc.bp(`hand${s}`, v)) : undefined;
-    prims.push({ z: vsHead(keyPts, z), draw: () => drawArm(rc, s, P.top, wdraw) });
+    if (held) {
+      const points = [hand, rc.bp(`hand${s}`, held.base ?? [0, -1.4, 3])];
+      if (held.tip) points.push(rc.bp(`hand${s}`, held.tip));
+      prims.push({ z: vsHead(points, hand.z + .5), draw: () => held.draw!(rc, (v) => rc.bp(`hand${s}`, v)) });
+    }
+    prims.push({ z: vsHead([hand], hand.z + .8), draw: () => drawArm(rc, s, P.top, 'hand') });
   }
   prims.push({ z: HEAD_Z, draw: () => drawHeadGroup(rc, { ...P }) });
   if (P.hair.back) {

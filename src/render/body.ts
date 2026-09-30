@@ -396,7 +396,8 @@ export function drawNeck(rc: RenderCtx) {
 
 // ---------------- Arms ----------------
 
-export function drawArm(rc: RenderCtx, side: 'L' | 'R', top: TopDef, weapon?: () => void) {
+/** Each articulated section has its own depth; a raised hand must not bring the shoulder in front of the head. */
+export function drawArm(rc: RenderCtx, side: 'L' | 'R', top: TopDef, section: 'upper' | 'forearm' | 'hand') {
   const { ctx, pal } = rc;
   const P = (b: BoneName) => projectWorld(rc.rig[b].pos);
   const s = P(`upperArm${side}`), e = P(`foreArm${side}`), w = P(`hand${side}`);
@@ -405,30 +406,36 @@ export function drawArm(rc: RenderCtx, side: 'L' | 'R', top: TopDef, weapon?: ()
   const sc = top.sleeveColor ?? pal.top;
   const at = (a: XY, b: XY, t: number): XY => ({ x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t) });
 
-  drawLimb(ctx, [
-    { a: s, b: e, w: 4.4, color: skin },
-    { a: e, b: w, w: 4.0, color: skin },
-  ]);
+  if (section === 'hand') {
+    circle(ctx, hc.x, hc.y, 2.5);
+    const hand = top.gloves ?? skin;
+    fs(ctx, hand, ink(hand), OL);
+    return;
+  }
+  drawLimb(ctx, section === 'upper'
+    ? [{ a: s, b: e, w: 4.4, color: skin }]
+    : [{ a: e, b: w, w: 4.0, color: skin }]);
   const segs: Seg[] = [];
   switch (top.sleeve) {
     case 'short':
-      segs.push({ a: s, b: at(s, e, 0.7), w: 5.4, color: sc });
+      if (section === 'upper') segs.push({ a: s, b: at(s, e, 0.7), w: 5.4, color: sc });
       break;
     case 'puff':
       break;
     case 'long':
-      segs.push({ a: s, b: e, w: 5.0, color: sc }, { a: e, b: at(e, w, 0.9), w: 4.7, color: sc });
+      if (section === 'upper') segs.push({ a: s, b: e, w: 5.0, color: sc });
+      else segs.push({ a: e, b: at(e, w, 0.9), w: 4.7, color: sc });
       break;
     case 'wide':
-      segs.push({ a: s, b: e, w: 5.4, color: sc });
+      if (section === 'upper') segs.push({ a: s, b: e, w: 5.4, color: sc });
       break;
   }
   if (segs.length) drawLimb(ctx, segs);
-  if (top.sleeve === 'puff') {
+  if (top.sleeve === 'puff' && section === 'upper') {
     circle(ctx, lerp(s.x, e.x, 0.3), lerp(s.y, e.y, 0.3), 3.6);
     fs(ctx, sc, ink(sc), OL);
   }
-  if (top.sleeve === 'wide') {
+  if (top.sleeve === 'wide' && section === 'forearm') {
     let dx = w.x - e.x, dy = w.y - e.y;
     const l = Math.hypot(dx, dy) || 1;
     dx /= l;
@@ -447,10 +454,10 @@ export function drawArm(rc: RenderCtx, side: 'L' | 'R', top: TopDef, weapon?: ()
     ctx.lineTo(end.x - nx * 4.4, end.y - ny * 4.4);
     fs(ctx, null, top.color2, 1.3);
   }
-  if (top.sleeve === 'long') {
+  if (top.sleeve === 'long' && section === 'forearm') {
     drawLimb(ctx, [{ a: at(e, w, 0.72), b: at(e, w, 0.9), w: 5.1, color: top.armor ? top.color2 : shade(sc, -0.12) }]);
   }
-  if (top.pauldron) {
+  if (top.pauldron && section === 'upper') {
     ctx.beginPath();
     ctx.ellipse(s.x, s.y - 0.4, 4, 3.4, 0, 0, TAU);
     fs(ctx, top.pauldron, ink(top.pauldron), OL);
@@ -458,10 +465,6 @@ export function drawArm(rc: RenderCtx, side: 'L' | 'R', top: TopDef, weapon?: ()
     ctx.arc(s.x - 0.8, s.y - 1.3, 2, 3.6, 5.2);
     fs(ctx, null, 'rgba(255,255,255,0.7)', 0.7);
   }
-  weapon?.();
-  circle(ctx, hc.x, hc.y, 2.5);
-  const hand = top.gloves ?? skin;
-  fs(ctx, hand, ink(hand), OL);
 }
 
 // ---------------- Legs & shoes ----------------
