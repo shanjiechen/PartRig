@@ -3,7 +3,7 @@ import { BONE_NAMES, type BoneName, type Pose } from './skeleton';
 
 export type Ease = 'linear' | 'in' | 'out' | 'inout';
 
-/** A keyframe. `t` is normalized time in [0,1). Unspecified channels default to 0 (rest pose). */
+/** Normalized time [0,1) for loops, [0,1] for one-shots. Missing channels use the rest pose. */
 export interface PoseKey {
   t: number;
   bones?: Partial<Record<BoneName, Vec3>>;
@@ -23,6 +23,8 @@ export interface AnimationClip {
   duration: number;
   interp: 'spline' | 'ease';
   keys: PoseKey[];
+  /** Defaults to looping. One-shots clamp at their final keyframe. */
+  loop?: boolean;
   /** Prop auto-equipped when the weapon slot is set to "auto". */
   prop?: string;
 }
@@ -67,15 +69,17 @@ const fxVal = (k: PoseKey, f: string) => k.fx?.[f] ?? 0;
 export function samplePose(clip: AnimationClip, time: number): Pose {
   const keys = clip.keys;
   const n = keys.length;
-  const u = (((time / clip.duration) % 1) + 1) % 1;
+  const looping = clip.loop !== false;
+  const u = looping ? (((time / clip.duration) % 1) + 1) % 1 : clamp(time / clip.duration, 0, 1);
   let i = n - 1;
   for (let k = 0; k < n; k++) if (keys[k].t <= u) i = k;
-  const j = (i + 1) % n;
+  const j = looping ? (i + 1) % n : Math.min(i + 1, n - 1);
   const t0 = keys[i].t;
   const t1 = j === 0 ? keys[0].t + 1 : keys[j].t;
   const uu = u < t0 ? u + 1 : u;
   const local = clamp((uu - t0) / Math.max(1e-6, t1 - t0), 0, 1);
-  const k0 = keys[(i - 1 + n) % n], k1 = keys[i], k2 = keys[j], k3 = keys[(j + 1) % n];
+  const k0 = keys[looping ? (i - 1 + n) % n : Math.max(0, i - 1)];
+  const k1 = keys[i], k2 = keys[j], k3 = keys[looping ? (j + 1) % n : Math.min(n - 1, j + 1)];
 
   const mixFn =
     clip.interp === 'spline'

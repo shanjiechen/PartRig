@@ -40,7 +40,7 @@ export function drawHeadGroup(rc: RenderCtx, P: HeadParts) {
   const buns = P.hair.buns ?? [];
   const female = rc.app.gender === 'female';
   const st = {
-    blink: rc.time % 3.4 < 0.13,
+    blink: (fx.dead ?? 0) > 0.5 || rc.time % 3.4 < 0.13,
     female,
     hurt: (fx.hurt ?? 0) > 0.5,
     joy: (fx.joy ?? 0) > 0.5,

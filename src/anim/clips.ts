@@ -327,5 +327,31 @@ const wave: AnimationClip = {
   ],
 };
 
-export const CLIPS: AnimationClip[] = [idle, walk, run, thrust, slash, shoot, cast, use, hit, wave];
+const fallen: Bones = {
+  root: [0, 0, 1.53], pelvis: [0.06, 0, 0], chest: [0.03, 0, 0], head: [0, 0, -0.05],
+  upperArmL: [0.15, 0, 0.55], foreArmL: [0.3, 0, 0],
+  upperArmR: [-0.15, 0, 0.3], foreArmR: [0.15, 0, 0],
+  thighL: [0.12, 0, 0.08], shinL: [0.2, 0, 0],
+  thighR: [-0.12, 0, 0.04], shinR: [0.15, 0, 0],
+};
+const death: AnimationClip = {
+  id: 'death', name: '死亡', duration: 1.8, interp: 'ease', loop: false,
+  keys: [
+    { t: 0, bones: hitReady },
+    {
+      t: 0.12, ease: 'out', root: [0, -1, -1.5], fx: { flash: 1, hurt: 1 },
+      bones: { chest: [-0.3, 0, 0.15], head: [-0.2, 0, -0.1], upperArmL: [0.5, 0, 0.6], upperArmR: [0.5, 0, 0.6], shinL: [0.5, 0, 0], shinR: [0.5, 0, 0] },
+    },
+    {
+      t: 0.35, ease: 'in', root: [7, 0, 0], fx: { hurt: 1, dead: 0.5 },
+      bones: { root: [0, 0, 0.4], chest: [0.12, 0, 0.12], head: [0.1, 0, -0.1], upperArmL: [0.3, 0, 0.9], upperArmR: [-0.1, 0, 0.4], thighL: [0.2, 0, 0.1], shinL: [0.6, 0, 0], shinR: [0.3, 0, 0] },
+    },
+    { t: 0.65, ease: 'out', root: [28, 19.5, 0], bones: fallen, fx: { dead: 1 } },
+    { t: 0.77, root: [28, 21, 0], bones: { ...fallen, root: [0, 0, 1.49] }, fx: { dead: 1 } },
+    { t: 0.9, root: [28, 19.5, 0], bones: fallen, fx: { dead: 1 } },
+    { t: 1, root: [28, 19.5, 0], bones: fallen, fx: { dead: 1 } },
+  ],
+};
+
+export const CLIPS: AnimationClip[] = [idle, walk, run, thrust, slash, shoot, cast, use, hit, death, wave];
 export const clipById = (id: string) => CLIPS.find((c) => c.id === id) ?? idle;

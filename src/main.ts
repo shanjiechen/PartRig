@@ -83,6 +83,7 @@ root.innerHTML = `
         <div class="anims" id="anims"></div>
         <div class="row">
           <button id="play">暂停</button>
+          <button id="replay">重播</button>
           <span class="label">速度</span><input id="speed" type="range" min="0.2" max="2" step="0.05" value="1" />
           <div class="seg"><button data-view="single" class="active">单视图</button><button data-view="eight">八方向</button></div>
         </div>
@@ -199,6 +200,7 @@ function setClip(next: AnimationClip) {
   blend = 0;
   clip = next;
   t = 0;
+  playing = true;
   syncControls();
 }
 
@@ -235,9 +237,11 @@ document.addEventListener('click', (e) => {
 });
 
 $('play').onclick = () => {
+  if (!playing && clip.loop === false && t >= clip.duration) t = 0;
   playing = !playing;
   syncControls();
 };
+$('replay').onclick = () => setClip(clip);
 $<HTMLInputElement>('speed').oninput = (e) => (speed = +(e.target as HTMLInputElement).value);
 $('random').onclick = () => setApp(randomAppearance());
 $('reset').onclick = () => setApp(defaultAppearance());
@@ -274,7 +278,7 @@ $('sheet').onclick = () => {
   const c = cv.getContext('2d')!;
   DIRECTIONS.forEach((dir, r) => {
     for (let f = 0; f < frames; f++) {
-      const time = (f / frames) * clip.duration;
+      const time = (f / (clip.loop === false ? frames - 1 : frames)) * clip.duration;
       drawCharacter(c, app, samplePose(clip, time), {
         x: f * cell + cell / 2,
         y: r * cell + cell * 0.8,
@@ -310,6 +314,11 @@ function frame(ts: number) {
   if (playing) {
     t += dt * speed;
     blend = Math.min(1, blend + (dt * speed) / 0.2);
+    if (clip.loop === false && t >= clip.duration) {
+      t = clip.duration;
+      playing = false;
+      syncControls();
+    }
   }
   if (autoRotate) {
     rotateTimer += dt;
