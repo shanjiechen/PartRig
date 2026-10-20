@@ -6,6 +6,8 @@
 
 **PartRig** is a chibi paper-doll animation editor built with TypeScript + Vite + Canvas 2D. Characters are drawn from vector paths and driven by a 16-bone rig, with 8-directional animation and transparent PNG sprite-sheet export. Zero runtime dependencies — a ready-to-use tool for previewing and producing indie game art assets.
 
+> **Live demo**: [https://partrig.onegame.ai](https://partrig.onegame.ai)
+
 <p align="center">
   <img src="docs/image-1.png" alt="PartRig editor: character preview and clip controls on the left, style/part/palette panel on the right" width="960" />
 </p>

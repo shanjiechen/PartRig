@@ -6,6 +6,8 @@
 
 **PartRig（拼偶）** 是一个基于 TypeScript + Vite + Canvas 2D 的 Q 版纸娃娃动画编辑器：角色由矢量路径绘制、由 16 根骨骼驱动，支持八方向动画与透明 PNG 精灵图导出。零运行时依赖，开箱即用，适合独立游戏美术资源的预览与生产。
 
+> **在线 Demo**：[https://partrig.onegame.ai](https://partrig.onegame.ai)
+
 <p align="center">
   <img src="docs/image-1.png" alt="PartRig 编辑器界面：左侧为角色预览与动作控制，右侧为风格、部位与配色选择面板" width="960" />
 </p>

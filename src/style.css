@@ -27,6 +27,14 @@ header {
 }
 header h1 { font-size: 20px; margin: 0; letter-spacing: 1px; }
 header small { color: var(--muted); }
+header .gh {
+  margin-left: auto;
+  display: inline-flex;
+  color: var(--muted);
+  transition: color 0.15s;
+}
+header .gh:hover { color: var(--ink); }
+header .gh svg { width: 22px; height: 22px; fill: currentColor; }
 
 main {
   display: grid;
