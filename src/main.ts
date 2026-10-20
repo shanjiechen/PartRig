@@ -10,7 +10,8 @@ import { CLOTH_TINTS, EYE_COLORS, HAIR_COLORS, SKIN_TONES, type Swatch } from '.
 import { drawCharacter } from './render/character';
 import { CAM_PITCH } from './render/context';
 
-const STORE_KEY = 'opus-sprite-appearance';
+const STORE_KEY = 'partrig-appearance';
+const LEGACY_STORE_KEY = 'opus-sprite-appearance';
 
 // ---------------- state ----------------
 
@@ -31,7 +32,8 @@ const idlePose = samplePose(CLIPS[0], 0.3);
 
 function loadAppearance(key = STORE_KEY): Appearance | null {
   try {
-    const s = localStorage.getItem(key);
+    const s = localStorage.getItem(key)
+      ?? (key === STORE_KEY ? localStorage.getItem(LEGACY_STORE_KEY) : null);
     return s ? sanitize(JSON.parse(s)) : null;
   } catch {
     return null;
@@ -57,7 +59,7 @@ function switchProfile(style: StyleId, gender: Gender) {
 
 const root = document.getElementById('app')!;
 root.innerHTML = `
-<header><h1>Q版纸娃娃动画系统</h1><small>2.5D 骨骼 · 八方向 · 部件自由组合</small></header>
+<header><h1>PartRig · 拼偶</h1><small>Q版纸娃娃动画编辑器 · 2.5D 骨骼 · 八方向 · 部件自由组合</small></header>
 <main>
   <section class="card stage">
     <canvas id="stage" role="img" aria-label="角色骨骼动画预览"></canvas>

@@ -1,49 +1,103 @@
-# Opus Sprite
+# PartRig · 拼偶
 
-TypeScript + Vite + Canvas 2D 的 Q 版纸娃娃编辑器。角色由路径和 16 根骨骼绘制，支持八方向动画与透明 PNG 精灵图导出。
+<p>
+  <a href="./README.md">简体中文</a> · <a href="./README.en.md">English</a>
+</p>
 
-## 使用
+**PartRig（拼偶）** 是一个基于 TypeScript + Vite + Canvas 2D 的 Q 版纸娃娃动画编辑器：角色由矢量路径绘制、由 16 根骨骼驱动，支持八方向动画与透明 PNG 精灵图导出。零运行时依赖，开箱即用，适合独立游戏美术资源的预览与生产。
+
+<p align="center">
+  <img src="docs/image-1.png" alt="PartRig 编辑器界面：左侧为角色预览与动作控制，右侧为风格、部位与配色选择面板" width="960" />
+</p>
+
+## 特性
+
+- **矢量部件 + 骨骼动画**：所有部件以 Canvas 路径绘制，由 16 根骨骼的关键帧驱动；2.5D 视角（俯仰投影），柔和明暗、细描边、虹膜纹理与衣料褶皱。
+- **八方向动画**：下、左下、左、左上、上、右上、右、右下共 8 个朝向，任意动作实时切换。
+- **三套风格**：`chibi`（Q 版）、`guofeng`（国风 Q 版）、`aistory`（冒险风）；男女角色各自保存编辑结果，可随时切换恢复。
+- **海量部件组合**：国风男女各 14 个部位槽位（脸型、五官、发型、头饰、服装、手持物等），每槽位 12 款起，共 340+ 选项；支持肤色、发色、瞳色与服装染色。
+- **精灵图导出**：一键导出透明 PNG——按行排列 8 方向、按列排列动画帧，文件名包含风格、性别、动作与帧数。
+- **配置导入导出**：JSON 格式的角色配置，支持本地多档案保存、随机角色、配置导入导出；旧配置自动兼容。
+- **零依赖**：无任何运行时依赖，构建产物极小。
+
+## 快速开始
 
 ```sh
 npm ci
-npm run dev -- --host 127.0.0.1
-npm test
-npm run build
+npm run dev -- --host 127.0.0.1   # 开发服务器
+npm test                          # 单元/回归测试
+npm run build                     # 生产构建
 ```
 
-右侧选择 `chibi`、国风 Q 版或 `Aistory 冒险`，再选择性别与部位。三套风格、男女角色各自保存编辑结果；随机角色和重置作用于当前风格及性别。旧 JSON 配置没有 `style` 字段时按 `chibi` 读取。
+要求 Node.js 18+。
 
-国风男女各有 14 个部位目录：脸型、耳朵、眉毛、眼睛、鼻子、嘴巴、胡子/面饰、面部特征、发型、头饰、上装、下装、鞋靴、手持物。前 13 个目录各 12 个选项，手持物提供 12 件实物以及随动作、空手，共 340 个选项。女性的胡子目录显示为面饰，包含颊钿、珠链、面纱等。
+## 使用说明
 
-`Aistory 冒险` 参考本机 Aistory 游戏实际使用的玩家形象（`../aistory-web/art/source/cartoon-v3/player.png`），用本项目的路径和骨骼重新绘制。默认造型为黑色高马尾、分束刘海、森林绿短袍、米白袖衬和裤子、皮革斜挎带、腰包与靴子，采用独立的紧凑比例。男女各有 12 款五官、发型、头饰、上装、下装和鞋靴，手持物另含战锤、魔典、提灯，共 340 个选项；保留女性上身体积及全部八方向动画。
+- 右侧面板选择风格（`chibi` / 国风 / Aistory 冒险），再选择性别与部位。
+- **动作**：待机、挥手、挥砍等循环播放；**死亡**动作播放一次后保持倒地，可重播，导出的精灵图包含最终倒地帧。
+- **朝向**：方向键盘切换 8 朝向，⟳ 按钮开启自动旋转。
+- **导出精灵图**：帧数 2–24 可调；输出布局为 8 行（方向）× N 列（帧），透明背景。
+- 配置保存在浏览器 `localStorage`，按「风格 + 性别」分档案；导出的 JSON 可在其他设备导入。
+- 旧版本 JSON 配置缺失 `style` 字段时按 `chibi` 读取；非法部件 ID 自动安全回退。
 
-死亡动作播放一次，完成后保持倒地；点击重播或播放可以再次播放。导出死亡精灵图会包含最终倒地帧。其余动作循环播放。PNG 按行排列八方向，按列排列动画帧，文件名包含风格、性别、动作和帧数。
+### 精灵图布局
 
-角色使用柔和明暗、细描边、虹膜纹理、发丝与衣料褶皱。女性上身有独立的前向胸部体积、收腰与服装下缘褶皱，跟随胸骨转动；男女背部体积保持独立。肩臂、前臂、手和武器分别排序，肩膀始终在头部后方。
+```
+帧 →  0    1    2   ...  N-1
+下    [●]  [●]  [●]      [●]
+左下  [●]  [●]  [●]      [●]
+...   ...
+右上  [●]  [●]  [●]      [●]
+```
 
-脸型采用连续相切的脸颊、下颌与圆润下巴曲线，缓和宽扁、过尖的比例，并保留各款脸型及配置 ID。女性胸部体积进一步增大，腰部宽度与厚度分别收窄。开心和大笑嘴型的描边只沿嘴巴外缘绘制，避免舌头椭圆产生额外的小圆圈；这轮调整前的回滚点为 `d2840ab`。
+单元格 192×192，可直接对接主流游戏引擎的精灵渲染器。
 
-## 部件与风格扩展
+## 项目结构
 
-- `src/parts/catalog.ts`：风格注册、男女目录；`getCatalog(style, gender)` 统一查找。
-- `src/parts/guofeng-*.ts`：国风五官、发髻冠饰、服饰、武器。
-- `src/parts/aistory*.ts`：Aistory 冒险部件、分束刘海、高马尾、旅行服和配饰。
-- `src/parts/ornaments.ts`：云纹、莲花、梅花、竹叶等刺绣路径。
-- `src/core/appearance.ts`：配置验证和旧配置兼容。
-- `src/anim/clips.ts`：骨骼关键帧；`loop: false` 表示单次动作，允许终点 `t: 1`。
-- `src/core/animation.ts`：循环/单次采样与姿态混合。
+| 模块 | 责任 |
+| --- | --- |
+| `src/parts/catalog.ts` | 风格注册、男女部位目录；`getCatalog(style, gender)` 统一查找 |
+| `src/parts/guofeng-*.ts` | 国风五官、发髻冠饰、服饰、武器 |
+| `src/parts/aistory*.ts` | Aistory 冒险部件、分束刘海、高马尾、旅行服和配饰 |
+| `src/parts/ornaments.ts` | 云纹、莲花、梅花、竹叶等刺绣路径 |
+| `src/parts/palettes.ts` | 肤色、发色、瞳色、服装染色色板 |
+| `src/core/skeleton.ts` | 16 骨骼骨架定义 |
+| `src/core/animation.ts` | 循环/单次采样与姿态混合 |
+| `src/anim/clips.ts` | 骨骼关键帧动作；`loop: false` 表示单次动作 |
+| `src/core/appearance.ts` | 配置验证和旧配置兼容 |
+| `src/render/` | Canvas 绘制与相机投影 |
+| `src/main.ts` | 编辑器 UI 与交互 |
 
-## 浏览器验证
+## 测试
 
-`tests/browser.mjs` 使用独立的 Playwright Chromium 验证所有国风或 Aistory 选项的八方向绘制、目录交互、档案恢复、死亡终态、PNG 最终帧、配置导入和响应式布局。需要本机已有 Playwright 及 Chromium；不影响应用依赖。可通过 `SPRITE_PLAYWRIGHT` 指向已有 Playwright 包，`SPRITE_URL` 指向开发服务，`SPRITE_STYLE=aistory` 验证新风格（默认 `guofeng`）。
+```sh
+npm test                       # 核心回归测试
+node tests/render-regression.mjs   # 渲染像素回归（八方向、4,752 帧）
+node tests/browser.mjs         # 浏览器端到端验证（需 Playwright + Chromium）
+node tests/visual-preview.mjs  # 生成动作/脸型视觉预览
+```
+
+浏览器测试为可选功能，不影响应用依赖。如 Playwright 安装在别处，可通过环境变量指定：
 
 ```powershell
-$env:SPRITE_PLAYWRIGHT = '你的 Playwright 包绝对路径'
+$env:SPRITE_PLAYWRIGHT = '你的 Playwright 包绝对路径'  # Playwright 包位置
+$env:SPRITE_URL = 'http://127.0.0.1:5173/'            # 开发服务地址
+$env:SPRITE_STYLE = 'aistory'                          # 待验证风格（默认 guofeng）
 node tests/browser.mjs
-node tests/render-regression.mjs
-node tests/visual-preview.mjs
 ```
 
-截图保存在被 Git 忽略的 `.shots/`，测试构建暂存在 `.test-build/`。初始代码快照为本地提交 `01da25d`。
+截图保存在被 Git 忽略的 `.shots/`，测试构建暂存在 `.test-build/`。
 
-`render-regression.mjs` 对六种风格/性别组合的八方向进行 96 次袖子与头部的像素对比，确保待机肩膀不会覆盖脸；另检查开心/大笑嘴型的边界和全部动作的 4,752 帧。`visual-preview.mjs` 生成待机、挥手、挥砍、倒地的接触表、角色大图和所有脸型的预览，可用 `PREVIEW_PREFIX` 设置文件名前缀、`PREVIEW_STYLES=aistory` 指定风格。本次精细化前的回滚点为 `d9a9778`，新增 Aistory 风格前的版本为 `763d3c8`。
+## 路线图
+
+- [ ] 骨骼动作录制/导入（当前动作数据为关键帧 JSON，已预留接入口）
+- [ ] 自定义部件包（外部 JSON 注册新风格）
+- [ ] 更多导出尺寸与 Gif/WebP 动画导出
+
+## 贡献
+
+欢迎 Issue 与 PR！新增部件请遵循现有单引号、命名与路径绘制风格；提交前请运行 `npm test` 与 `npm run build`。
+
+## License
+
+[MIT](./LICENSE)（待添加）

@@ -13,7 +13,7 @@ page.on('pageerror', (e) => errors.push(e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
 page.on('response', (r) => { if (r.status() >= 400) errors.push(`${r.status()} ${r.url()}`); });
 mkdirSync('.shots', { recursive: true });
-const appearance = () => page.evaluate(() => JSON.parse(localStorage.getItem('opus-sprite-appearance')));
+const appearance = () => page.evaluate(() => JSON.parse(localStorage.getItem('partrig-appearance')));
 const screenshot = async (name) => { await page.waitForTimeout(180); await page.screenshot({ path: `.shots/${testedStyle}-${name}.png` }); };
 const downloadBytes = async (selector) => {
   const pending = page.waitForEvent('download'); await page.locator(selector).click();
